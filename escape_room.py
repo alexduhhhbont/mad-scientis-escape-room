@@ -13,10 +13,13 @@ STAGE 2 — Switch puzzle
 Admin kill combo: Ctrl+Shift+Alt+Q
 """
 
+import threading
 import tkinter as tk
 import tkinter.font as tkfont
 import random
 import time
+
+import requests
 
 # ─────────────── CONFIGURATION ───────────────
 PASSWORD        = "CHAOS42"
@@ -45,7 +48,25 @@ FLAVOR_LINES = [
 
 FAIL_MSG    = "⚠  INVALID CODE — SECURITY ALERT LOGGED"
 SWITCH_FAIL = "⚠  INCORRECT CONFIGURATION — SEQUENCE REJECTED"
+
+PC2_URL     = "http://192.168.1.XX:8000"          # ← set PC 2's LAN IP here
+PC2_API_KEY = "change-me-to-something-random"
 # ──────────────────────────────────────────────
+
+
+def notify_pc2(endpoint: str, payload: dict):
+    """Fire-and-forget HTTP call to PC 2. Never blocks the GUI thread."""
+    def _send():
+        try:
+            requests.post(
+                f"{PC2_URL}/{endpoint}",
+                json=payload,
+                headers={"X-API-Key": PC2_API_KEY},
+                timeout=1.0,
+            )
+        except Exception:
+            pass
+    threading.Thread(target=_send, daemon=True).start()
 
 
 class GlitchLabel(tk.Label):
@@ -254,6 +275,8 @@ class EscapeRoomApp:
             self.attempt_lbl.config(text=f"{self.attempt_count} FAILED")
             self.entry_var.set("")
             self.feedback_lbl.config(text=FAIL_MSG, fg="#ff4444")
+            notify_pc2("lights/sequence", {"type": "flash", "color": [255, 0, 0],
+                                           "intensity": 255, "frequency_hz": 3.0, "duration_sec": 3.0})
             self._flash_red(3)
 
     # ══════════════════════════════════════════
@@ -262,6 +285,8 @@ class EscapeRoomApp:
     def _transition_to_switches(self):
         self.stage = "switches"
         self.root.configure(bg="#000000")
+        notify_pc2("lights/sequence", {"type": "flash", "color": [255, 140, 0],
+                                       "intensity": 200, "frequency_hz": 1.5, "duration_sec": 3.0})
         self._build_switch_stage()
 
     def _build_switch_stage(self):
@@ -354,6 +379,8 @@ class EscapeRoomApp:
             self.attempt_count += 1
             self.attempt_lbl.config(text=f"{self.attempt_count} FAILED")
             self.switch_feedback.config(text=SWITCH_FAIL, fg="#ff4444")
+            notify_pc2("lights/sequence", {"type": "flash", "color": [255, 0, 0],
+                                           "intensity": 255, "frequency_hz": 3.0, "duration_sec": 3.0})
             self._flash_red(3)
 
     # ══════════════════════════════════════════
@@ -362,6 +389,8 @@ class EscapeRoomApp:
     def _show_final_success(self):
         self._clear_content()
         self.root.configure(bg="#000000")
+        notify_pc2("lights/sequence", {"type": "pulse", "color": [0, 255, 65],
+                                       "intensity": 255, "frequency_hz": 0.4, "duration_sec": 300.0})
 
         center = tk.Frame(self.content, bg="#000000")
         center.pack(fill=tk.BOTH, expand=True)
@@ -444,6 +473,7 @@ class EscapeRoomApp:
         self.root.after(160, lambda: self._flash_red(times - 1))
 
     def _admin_quit(self, event=None):
+        notify_pc2("lights/blackout", {})
         self.root.destroy()
 
     def _f12_quit(self, event=None):
@@ -451,6 +481,7 @@ class EscapeRoomApp:
         if self._f12_timer:
             self.root.after_cancel(self._f12_timer)
         if self._f12_presses >= 3:
+            notify_pc2("lights/blackout", {})
             self.root.destroy()
         else:
             self._f12_timer = self.root.after(1500, self._reset_f12)

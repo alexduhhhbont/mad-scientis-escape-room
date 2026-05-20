@@ -1,0 +1,5 @@
+# PC 2 — Controller PC
+# Install with: pip install -r requirements_pc2.txt
+fastapi
+uvicorn[standard]
+pyserial
