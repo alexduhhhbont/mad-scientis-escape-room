@@ -1,14 +1,17 @@
-# Mad Scientist Escape Room — System Setup
+# Wonky's Candy Factory Escape Room — System Setup
 
-Two machines work together to run the room. **PC 1** runs the player-facing terminal (puzzle interface). **PC 2** runs the Game Master controller and drives the DMX lighting.
+Two machines work together to run the room. **PC 1** runs the player-facing terminal (puzzle interface). **PC 2** runs the DMX lighting controller and serves the **GM phone panel**. The Game Master controls everything from their phone by connecting to PC 2.
 
 ```
-[ PC 1 — Player terminal ]  ──HTTP──▶  [ PC 2 — GM controller + DMX ]
-      escape_room.py                          controller.py
-                                                    │
-                                              Enttec Open DMX USB
-                                                    │
-                                          Eurolite LED PARty RGB Spot
+                        ┌─────────────────────────────────┐
+  GM phone              │  PC 2 — controller.py           │
+  browser  ──HTTP──▶   │  FastAPI :8000                  │
+                        │  • /gm  GM phone panel          │──▶ Enttec Open DMX USB
+                        │  • /lights/*  PC1 events        │         │
+                        │  • /gm/ctrl/game/*  proxied ──────▶  PC 1 — escape_room.py
+                        └─────────────────────────────────┘    FastAPI :8001
+                                                                 • /game/*  game control
+                                                                 • /game/audio/*  audio
 ```
 
 ---
@@ -17,26 +20,47 @@ Two machines work together to run the room. **PC 1** runs the player-facing term
 
 Runs a full-screen Tkinter puzzle interface locked to the desktop.
 
-**Stage 1 — Password:** Players enter the authorization code (`CHAOS42` by default).  
-**Stage 2 — Switches:** Players configure six switches in the correct combination.  
-**Stage 3 — Success screen** is shown when both stages are complete.
+**Intro sequence:** A startup screen plays with audio and a rainbow light sweep before the game begins.
 
-Each failed attempt and each stage transition fires an HTTP event to PC 2 to trigger a lighting effect.
+**Stage 1 — Password:** Players enter the secret code (`CHAOS42` by default).
+
+**Stage 2 — Switches:** Players configure six levers in the correct combination.
+
+**Stage 3 — Victory:** Success screen with victory audio and celebration lights.
+
+Each wrong answer fires a wrong-answer sound effect over the ducked background theme, plus a red light flash. Each stage transition fires story audio and a light sequence. An ambient idle light pulse runs every 12 seconds between events.
 
 ### Setup
 
 ```bash
 pip install -r requirements_pc1.txt
+mkdir audio
 ```
+
+Place audio files in the `audio/` folder:
+
+| File | When it plays |
+|------|---------------|
+| `audio/intro.wav` | Once at startup; main theme auto-starts after |
+| `audio/main_theme.wav` | Looping background music throughout the game |
+| `audio/wrong.wav` | Wrong password or wrong switches (plays over ducked theme) |
+| `audio/stage1_story.wav` | Story narration after password is accepted |
+| `audio/victory.wav` | Final win fanfare |
+| `audio/hint.wav` | Optional — triggered from the GM panel |
 
 ### Configuration (`escape_room.py`)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PASSWORD` | `CHAOS42` | Stage 1 password |
-| `SWITCH_SOLUTION` | `[True, True, False, False, True, False]` | Correct switch states (index 0 = switch 1) |
-| `PC2_URL` | `http://192.168.1.XX:8000` | **Set this to PC 2's LAN IP** |
+| `SWITCH_SOLUTION` | `[True, True, False, False, True, False]` | Correct lever states (index 0 = lever 1) |
+| `PC2_URL` | `http://192.168.178.84:8000` | **Set to PC 2's LAN IP** |
 | `PC2_API_KEY` | `change-me-to-something-random` | Must match PC 2's `API_KEY` |
+| `PC1_API_PORT` | `8001` | Port PC 1 listens on for game-control commands from PC 2 |
+| `PC1_API_KEY` | `change-me-to-something-random` | Must match PC 2's `PC1_API_KEY` |
+| `THEME_VOLUME` | `0.40` | Background music volume (0.0–1.0) |
+| `DUCK_VOLUME` | `0.10` | Theme volume while a SFX plays |
+| `IDLE_LIGHT_INTERVAL_MS` | `12000` | Milliseconds between ambient light pulses |
 
 ### Run
 
@@ -48,9 +72,33 @@ Press **Ctrl+Shift+Alt+Q** or **F12 three times** to exit.
 
 ---
 
-## PC 2 — Game Master Controller
+## GM Panel (Phone Controller)
 
-Runs a Tkinter GM panel, a FastAPI web server (receives events from PC 1), and a DMX streaming thread.
+With PC 2 running, open this URL on any phone or tablet on the same WiFi:
+
+```
+http://<PC2-IP>:8000/gm?key=candy-gm
+```
+
+PC 2 prints the exact URL in its log window on startup.
+
+The panel provides:
+
+| Section | Buttons |
+|---------|---------|
+| **Audio** | Intro, Theme, Wrong SFX, Story, Victory, Hint, Restore, Stop All |
+| **Lights** | Rainbow, Suspense, Warning, Celebrate, Blackout |
+| **Game Control** | Play Hint, Skip to Stage 2, Force Win, Reset Game |
+
+Audio and game commands are proxied by PC 2 through to PC 1. Lights are handled directly by PC 2. The status bar refreshes every 3 seconds showing current stage, fail count, and DMX state.
+
+> **Security:** set `GM_KEY` in `controller.py` to something private before your event.
+
+---
+
+## PC 2 — DMX Lighting Controller
+
+Runs a FastAPI web server that receives light events from PC 1 and drives the DMX fixtures.
 
 ### Hardware
 
@@ -71,14 +119,14 @@ sudo apt install python3-tk libftdi1-2
 pip install -r requirements_pc2.txt
 ```
 
-### One-time udev rule (run without sudo)
+### One-time udev rule (run once, no sudo needed after)
 
 ```bash
 sudo cp 99-enttec-opendmx.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-Then unplug and replug the Enttec adapter. After this, `controller.py` runs as a normal user.
+Unplug and replug the Enttec adapter. After this, `controller.py` runs as a normal user.
 
 ### Configuration (`controller.py`)
 
@@ -86,9 +134,11 @@ Then unplug and replug the Enttec adapter. After this, `controller.py` runs as a
 |----------|---------|-------------|
 | `FTDI_VENDOR` | `0x0403` | Enttec Open DMX USB vendor ID |
 | `FTDI_PRODUCT` | `0x6001` | Enttec Open DMX USB product ID |
-| `API_PORT` | `8000` | Port the web server listens on |
-| `API_KEY` | `change-me-to-something-random` | Shared secret — set on both PCs |
-| `FIXTURES` | `{1: 1, 2: 10, 3: 19}` | Fixture ID → DMX start channel |
+| `API_PORT` | `8000` | Port the web server listens on (PC1 events + GM panel) |
+| `API_KEY` | `change-me-to-something-random` | Key PC 1 sends when calling PC 2 — must match PC 1's `PC2_API_KEY` |
+| `PC1_URL` | `http://192.168.178.XX:8001` | **Set to PC 1's LAN IP** |
+| `PC1_API_KEY` | `change-me-to-something-random` | Key PC 2 sends when calling PC 1 — must match PC 1's `PC1_API_KEY` |
+| `GM_KEY` | `candy-gm` | **Change this** — used to access the GM phone panel |
 
 ### Fixture channel map (Eurolite LED PARty RGB Spot)
 
@@ -127,10 +177,10 @@ curl -X POST http://<PC2_IP>:8000/lights/static \
   -d '{"fixtures": [{"id": 1, "r": 255, "g": 0, "b": 0, "intensity": 255}]}'
 ```
 
-**Example — green pulse for 10 seconds:**
+**Example — pink pulse for 10 seconds:**
 ```bash
 curl -X POST http://<PC2_IP>:8000/lights/sequence \
   -H "X-API-Key: change-me-to-something-random" \
   -H "Content-Type: application/json" \
-  -d '{"type": "pulse", "color": [0, 255, 65], "intensity": 255, "frequency_hz": 0.5, "duration_sec": 10}'
+  -d '{"type": "pulse", "color": [255, 105, 180], "intensity": 255, "frequency_hz": 0.5, "duration_sec": 10}'
 ```

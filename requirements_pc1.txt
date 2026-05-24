@@ -1,3 +1,6 @@
 # PC 1 — Player PC
 # Install with: pip install -r requirements_pc1.txt
 requests
+pygame
+fastapi
+uvicorn[standard]
