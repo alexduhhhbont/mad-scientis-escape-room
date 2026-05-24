@@ -1,3 +1,4 @@
-# Enttec Open DMX USB — grant current session user access via libftdi1/libusb
-# (libftdi bypasses the ftdi_sio kernel driver and accesses the chip directly)
-SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", TAG+="uaccess", MODE="0664"
+# Enttec Open DMX USB — grant access and prevent ftdi_sio from claiming the device
+# libftdi1 accesses the chip directly via libusb; ftdi_sio must not hold it.
+SUBSYSTEM=="usb", DEVTYPE=="usb_device", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", TAG+="uaccess", MODE="0664"
+ACTION=="bind", SUBSYSTEM=="usb", DRIVER=="ftdi_sio", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", RUN+="/bin/sh -c 'echo -n %k > /sys/bus/usb/drivers/ftdi_sio/unbind'"

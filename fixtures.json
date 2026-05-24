@@ -1,0 +1,55 @@
+{
+  "types": [
+    {
+      "id": "eurolite-rgb",
+      "name": "Eurolite LED PARty RGB Spot",
+      "channels": [
+        {
+          "offset": 0,
+          "name": "Red",
+          "role": "red"
+        },
+        {
+          "offset": 1,
+          "name": "Green",
+          "role": "green"
+        },
+        {
+          "offset": 2,
+          "name": "Blue",
+          "role": "blue"
+        },
+        {
+          "offset": 3,
+          "name": "Dimmer",
+          "role": "intensity"
+        },
+        {
+          "offset": 4,
+          "name": "Strobe",
+          "role": "strobe"
+        }
+      ]
+    }
+  ],
+  "instances": [
+    {
+      "id": 1,
+      "name": "Fixture 1",
+      "type_id": "eurolite-rgb",
+      "dmx_address": 1
+    },
+    {
+      "id": 2,
+      "name": "Fixture 2",
+      "type_id": "eurolite-rgb",
+      "dmx_address": 10
+    },
+    {
+      "id": 3,
+      "name": "Fixture 3",
+      "type_id": "eurolite-rgb",
+      "dmx_address": 19
+    }
+  ]
+}
