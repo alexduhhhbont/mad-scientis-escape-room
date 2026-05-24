@@ -5,9 +5,10 @@ MAD SCIENTIST ESCAPE ROOM — PC 2 CONTROLLER
 Thread layout:
   Main     — Tkinter GUI (Game Master panel)
   Thread 2 — Uvicorn / FastAPI web server (listens for PC 1 events)
-  Thread 3 — DMX streaming loop (Enttec Open DMX via pyserial, ~40 Hz)
+  Thread 3 — DMX streaming loop (Enttec Open DMX via libftdi1, ~30 Hz)
 """
 
+import ctypes
 import math
 import queue
 import threading
@@ -17,23 +18,23 @@ import tkinter.font as tkfont
 from dataclasses import dataclass
 from typing import Optional
 
-import serial
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 # ─────────────── CONFIGURATION ───────────────
-DMX_PORT        = "/dev/ttyUSB0"              # Linux: find yours with: ls /dev/ttyUSB*
+FTDI_VENDOR     = 0x0403   # Enttec Open DMX USB (FTDI FT232R)
+FTDI_PRODUCT    = 0x6001
 API_HOST        = "0.0.0.0"
 API_PORT        = 8000
 API_KEY         = "change-me-to-something-random"
 
 # Fixture map: fixture_id → first DMX channel (1-indexed)
-# Each fixture uses 3 consecutive channels: R, G, B
+# Eurolite LED PARty RGB Spot: ch+0=R, ch+1=G, ch+2=B, ch+3=Dimmer, ch+4=Strobe
 FIXTURES: dict[int, int] = {
     1: 1,
-    2: 4,
-    3: 7,
+    2: 10,
+    3: 19,
 }
 
 DMX_REFRESH_HZ  = 40
@@ -94,20 +95,22 @@ class LightingController:
         if fixture_id not in FIXTURES:
             return
         start = FIXTURES[fixture_id]
-        scale = intensity / 255
         self.apply_static({
-            start:     int(r * scale),
-            start + 1: int(g * scale),
-            start + 2: int(b * scale),
+            start:     r,
+            start + 1: g,
+            start + 2: b,
+            start + 3: intensity,  # master dimmer
+            start + 4: 0,          # strobe off
         })
 
     def apply_all_fixtures(self, r: int, g: int, b: int, intensity: int = 255):
-        scale = intensity / 255
         channels = {}
         for start in FIXTURES.values():
-            channels[start]     = int(r * scale)
-            channels[start + 1] = int(g * scale)
-            channels[start + 2] = int(b * scale)
+            channels[start]     = r
+            channels[start + 1] = g
+            channels[start + 2] = b
+            channels[start + 3] = intensity  # master dimmer
+            channels[start + 4] = 0          # strobe off
         self.apply_static(channels)
 
     def start_sequence(self, seq_type: str, color: tuple, intensity: int,
@@ -164,9 +167,11 @@ class LightingController:
             scale = base_scale
 
         for start in FIXTURES.values():
-            frame[start]     = int(r0 * scale)
-            frame[start + 1] = int(g0 * scale)
-            frame[start + 2] = int(b0 * scale)
+            frame[start]     = r0
+            frame[start + 1] = g0
+            frame[start + 2] = b0
+            frame[start + 3] = int(seq.intensity * scale)  # master dimmer
+            frame[start + 4] = 0                           # strobe off
 
         return frame
 
@@ -189,54 +194,86 @@ controller = LightingController()
 
 
 # ══════════════════════════════════════════════
+#  LIBFTDI1 SETUP  (mirrors QLC+'s libFTDI interface)
+# ══════════════════════════════════════════════
+
+_lib = ctypes.CDLL("libftdi1.so.2")
+
+_P = ctypes.c_void_p   # shorthand for ftdi_context*
+
+_lib.ftdi_new.restype                 = _P
+_lib.ftdi_usb_open.restype            = ctypes.c_int
+_lib.ftdi_usb_open.argtypes           = [_P, ctypes.c_int, ctypes.c_int]
+_lib.ftdi_set_baudrate.restype        = ctypes.c_int
+_lib.ftdi_set_baudrate.argtypes       = [_P, ctypes.c_int]
+_lib.ftdi_set_line_property2.restype  = ctypes.c_int
+_lib.ftdi_set_line_property2.argtypes = [_P, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+_lib.ftdi_write_data.restype          = ctypes.c_int
+_lib.ftdi_write_data.argtypes         = [_P, ctypes.c_void_p, ctypes.c_int]
+_lib.ftdi_usb_close.restype           = ctypes.c_int
+_lib.ftdi_usb_close.argtypes          = [_P]
+_lib.ftdi_free.restype                = None
+_lib.ftdi_free.argtypes               = [_P]
+_lib.ftdi_get_error_string.restype    = ctypes.c_char_p
+_lib.ftdi_get_error_string.argtypes   = [_P]
+
+_BITS_8     = 8
+_STOP_BIT_2 = 2
+_NONE       = 0   # parity
+_BREAK_OFF  = 0
+_BREAK_ON   = 1
+
+
+# ══════════════════════════════════════════════
 #  DMX STREAMING THREAD
 # ══════════════════════════════════════════════
 
 def dmx_streaming_loop():
     """
-    Continuously streams DMX frames to the Enttec Open DMX USB adapter.
-
-    The Open DMX has no firmware — the host must generate the electrical
-    protocol by bit-banging via pyserial's break_condition:
-      BREAK (≥88 μs) → MAB (≥8 μs) → start code 0x00 → 512 channel bytes
-    Serial settings: 250 kbaud, 8N2.
+    Streams DMX frames via libftdi1 (bypasses the ftdi_sio kernel driver,
+    mirrors what QLC+ does). Protocol: BREAK 110 µs → MAB 16 µs → 513 bytes.
     """
     period = 1.0 / DMX_REFRESH_HZ
-    ser    = None
+    ctx    = None
 
     while True:
         tick_start = time.monotonic()
 
-        if ser is None:
-            try:
-                ser = serial.Serial(
-                    port=DMX_PORT,
-                    baudrate=250000,
-                    bytesize=serial.EIGHTBITS,
-                    parity=serial.PARITY_NONE,
-                    stopbits=serial.STOPBITS_TWO,
-                    timeout=0,
-                )
-                controller.dmx_online = True
-                log_queue.put("DMX device connected")
-            except serial.SerialException:
-                controller.dmx_online = False
-                time.sleep(2)   # retry every 2 s without spinning
+        if ctx is None:
+            c = _lib.ftdi_new()
+            if not c:
+                time.sleep(2)
                 continue
+            ret = _lib.ftdi_usb_open(c, FTDI_VENDOR, FTDI_PRODUCT)
+            if ret < 0:
+                err = _lib.ftdi_get_error_string(c).decode()
+                log_queue.put(f"DMX open failed: {err} — retrying in 2s")
+                _lib.ftdi_free(c)
+                controller.dmx_online = False
+                time.sleep(2)
+                continue
+            _lib.ftdi_set_baudrate(c, 250000)
+            _lib.ftdi_set_line_property2(c, _BITS_8, _STOP_BIT_2, _NONE, _BREAK_OFF)
+            ctx = c
+            controller.dmx_online = True
+            log_queue.put("DMX device connected")
 
         frame = controller.get_frame()
 
-        try:
-            ser.break_condition = True
-            time.sleep(0.001)       # 1 ms break  (spec: ≥88 μs)
-            ser.break_condition = False
-            time.sleep(0.0001)      # 100 μs MAB  (spec: ≥8 μs)
-            ser.write(bytes(frame))
-        except serial.SerialException:
-            log_queue.put("DMX device disconnected — retrying in 2s")
-            ser.close()
-            ser = None
+        ret = _lib.ftdi_set_line_property2(ctx, _BITS_8, _STOP_BIT_2, _NONE, _BREAK_ON)
+        if ret < 0:
+            log_queue.put("DMX write error — retrying in 2s")
+            _lib.ftdi_usb_close(ctx)
+            _lib.ftdi_free(ctx)
+            ctx = None
             controller.dmx_online = False
+            time.sleep(2)
+            continue
+
+        time.sleep(0.000110)   # 110 µs break
+        _lib.ftdi_set_line_property2(ctx, _BITS_8, _STOP_BIT_2, _NONE, _BREAK_OFF)
+        time.sleep(0.000016)   # 16 µs MAB
+        _lib.ftdi_write_data(ctx, bytes(frame), 513)
 
         elapsed   = time.monotonic() - tick_start
         remaining = period - elapsed
