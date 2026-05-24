@@ -41,7 +41,7 @@ CHANNEL_ROLES  = ["red", "green", "blue", "intensity", "strobe", "generic"]
 # ── PC 1 connection ──────────────────────────
 # PC 2 calls PC 1's game control API to reset/skip/trigger audio etc.
 # PC1_API_KEY must match PC1_API_KEY in escape_room.py on PC 1.
-PC1_URL     = "http://192.168.178.XX:8001"   # ← set PC 1's LAN IP here
+PC1_URL     = "http://192.168.178.151:8001"   # ← set PC 1's LAN IP here
 PC1_API_KEY = "change-me-to-something-random"
 
 # ── GM phone panel ───────────────────────────
