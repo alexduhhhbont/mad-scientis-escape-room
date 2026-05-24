@@ -393,7 +393,7 @@ class EscapeRoomApp:
         self._f12_timer   = None
         self.root.bind("<F12>", self._f12_quit)
 
-        self.stage            = "intro"
+        self.stage            = "waiting"
         self.attempt_count    = 0
         self.switch_states    = [False] * 6
         self.game_elapsed_sec = 0.0
@@ -419,8 +419,7 @@ class EscapeRoomApp:
         self.content = tk.Frame(self.outer, bg=BG)
         self.content.pack(fill=tk.BOTH, expand=True, padx=60, pady=10)
 
-        self._build_intro_screen()
-        self.root.after(500, self._start_intro_sequence)
+        self._build_waiting_screen()
 
         self._tick_clock()
         self._tick_timer()
@@ -465,15 +464,57 @@ class EscapeRoomApp:
         self.root.after(6000, self._finish_intro)
 
     def _finish_intro(self):
-        self.stage = "password"
+        self.stage           = "password"
+        self.game_start_time = time.monotonic()
+        self.game_running    = True
         self._build_password_stage()
         self._start_cursor_blink()
+
+    # ══════════════════════════════════════════
+    #  WAITING SCREEN
+    # ══════════════════════════════════════════
+    def _build_waiting_screen(self):
+        self._clear_content()
+        center = tk.Frame(self.content, bg=BG)
+        center.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(center, text="🍭", bg=BG,
+                 font=tkfont.Font(family="Courier", size=100)).pack(pady=(30, 6))
+
+        tk.Label(center, text="WONKY'S CANDY FACTORY",
+                 fg=YELLOW, bg=BG, font=self.f_giant).pack(pady=(0, 6))
+
+        tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=120, pady=12)
+
+        self._wait_lbl = tk.Label(center, text="★  STAND BY  ★",
+                                  fg=PINK, bg=BG, font=self.f_big)
+        self._wait_lbl.pack(pady=(0, 10))
+
+        tk.Label(center,
+                 text="Waiting for Game Master to start the session...",
+                 fg=DIM, bg=BG, font=self.f_medium).pack()
+
+        tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=120, pady=12)
+
+        tk.Label(center, text="[ GAME MASTER: press  ▶ START  to begin ]",
+                 fg=DIM, bg=BG, font=self.f_small).pack()
+
+        self._wait_blink_state = True
+        self._blink_waiting()
+
+    def _blink_waiting(self):
+        if self.stage != "waiting":
+            return
+        color = PINK if self._wait_blink_state else PURPLE
+        self._wait_lbl.config(fg=color)
+        self._wait_blink_state = not self._wait_blink_state
+        self.root.after(700, self._blink_waiting)
 
     # ══════════════════════════════════════════
     #  IDLE AMBIENT LIGHTS
     # ══════════════════════════════════════════
     def _idle_lights(self):
-        if self.stage in ("password", "switches"):
+        if self.stage in ("waiting", "password", "switches"):
             color = random.choice([
                 [255, 105, 180],
                 [255, 215,   0],
@@ -763,20 +804,23 @@ class EscapeRoomApp:
     # ══════════════════════════════════════════
     def gm_reset(self):
         def _do():
-            self.stage            = "password"
+            self.stage            = "waiting"
             self.attempt_count    = 0
             self.switch_states    = [False] * 6
             self.game_elapsed_sec = 0.0
             self.game_start_time  = None
             self.game_running     = False
             self.audio.restore_theme()
-            self._build_password_stage()
-            self._start_cursor_blink()
+            self._build_waiting_screen()
         self.root.after(0, _do)
 
     def gm_start(self):
         def _do():
-            if not self.game_running:
+            if self.stage == "waiting":
+                self.stage = "intro"
+                self._build_intro_screen()
+                self._start_intro_sequence()
+            elif not self.game_running:
                 self.game_start_time = time.monotonic()
                 self.game_running    = True
         self.root.after(0, _do)
