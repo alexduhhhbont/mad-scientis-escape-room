@@ -68,7 +68,9 @@ _GM_HTML = """
     h3  { color: #cc44ff; font-size: 0.85rem; margin-bottom: 8px; }
     .card { background: #2a0045; border-radius: 10px; padding: 14px;
             margin-bottom: 12px; border: 1px solid #8800cc; }
-    .status { font-size: 0.95rem; color: #ffd700; text-align: center; padding: 4px; }
+    .timer  { font-size: 2rem; color: #884488; text-align: center; padding: 2px 4px;
+              font-weight: bold; letter-spacing: 4px; }
+    .status { font-size: 0.85rem; color: #884488; text-align: center; padding: 4px; }
     .grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .btn {
       width: 100%; padding: 14px 6px; font-size: 0.9rem; border: none;
@@ -81,8 +83,11 @@ _GM_HTML = """
     .btn-purple { background: #cc44ff; color: #fff; }
     .btn-orange { background: #ff8c00; color: #fff; }
     .btn-red    { background: #cc1111; color: #fff; }
+    .btn-green  { background: #00cc33; color: #000; }
     .btn-dark   { background: #3d0060; color: #cc44ff; border: 1px solid #8800cc; }
     .full { grid-column: 1 / -1; }
+    .secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .secondary .btn { padding: 10px 6px; font-size: 0.8rem; }
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: #ffd700; color: #1a0030; padding: 10px 22px; border-radius: 20px;
@@ -96,7 +101,22 @@ _GM_HTML = """
   <h1>🍬 Candy Factory GM Panel</h1>
 
   <div class="card">
+    <div class="timer" id="timer">⏹ --:--</div>
     <div class="status" id="status">Connecting...</div>
+  </div>
+
+  <div class="card">
+    <h3>🎮 Game Controls</h3>
+    <div class="grid">
+      <button class="btn btn-green"  onclick="ctrl('game/start')">▶ START</button>
+      <button class="btn btn-orange" id="btn-pause" onclick="ctrl('game/pause')">⏸ PAUSE</button>
+      <button class="btn btn-yellow" onclick="ctrl('game/victory')">🏆 WIN</button>
+      <button class="btn btn-red"    onclick="confirmReset()">↺ RESET</button>
+    </div>
+    <div class="secondary">
+      <button class="btn btn-purple" onclick="ctrl('game/hint')">💡 Hint</button>
+      <button class="btn btn-dark"   onclick="ctrl('game/skip_s2')">⏭ Stage 2</button>
+    </div>
   </div>
 
   <div class="card">
@@ -124,16 +144,6 @@ _GM_HTML = """
     </div>
   </div>
 
-  <div class="card">
-    <h3>🎮 Game Control</h3>
-    <div class="grid">
-      <button class="btn btn-purple" onclick="ctrl('game/hint')">💡 Play Hint</button>
-      <button class="btn btn-yellow" onclick="ctrl('game/skip_s2')">⏭ → Stage 2</button>
-      <button class="btn btn-pink"   onclick="ctrl('game/victory')">🏆 Force Win</button>
-      <button class="btn btn-red"    onclick="confirmReset()">↺ Reset</button>
-    </div>
-  </div>
-
   <div class="toast" id="toast"></div>
 
   <script>
@@ -144,6 +154,7 @@ _GM_HTML = """
         const r = await fetch('/gm/ctrl/' + endpoint + '?key=' + KEY, {method: 'POST'});
         const j = await r.json();
         toast(j.msg || j.error || 'OK');
+        setTimeout(refreshStatus, 400);
       } catch(e) { toast('Network error'); }
     }
 
@@ -155,10 +166,27 @@ _GM_HTML = """
       try {
         const r = await fetch('/gm/status?key=' + KEY);
         const j = await r.json();
+        const sec = j.timer_sec || 0;
+        const m   = Math.floor(sec / 60);
+        const s   = sec % 60;
+        const pad = n => String(n).padStart(2, '0');
+        const timerEl = document.getElementById('timer');
+        if (j.timer_running) {
+          timerEl.textContent = '▶ ' + pad(m) + ':' + pad(s);
+          timerEl.style.color = '#ffd700';
+        } else if (sec > 0) {
+          timerEl.textContent = '⏸ ' + pad(m) + ':' + pad(s);
+          timerEl.style.color = '#ff8c00';
+        } else {
+          timerEl.textContent = '⏹ --:--';
+          timerEl.style.color = '#884488';
+        }
         document.getElementById('status').textContent =
           '📍 ' + j.stage.toUpperCase() +
           '   ❌ Fails: ' + j.attempts +
-          '   💡 DMX: ' + j.dmx;
+          '   DMX: ' + j.dmx;
+        const pb = document.getElementById('btn-pause');
+        if (pb) pb.textContent = j.timer_running ? '⏸ PAUSE' : '▶ RESUME';
       } catch(e) {}
     }
 
@@ -710,9 +738,11 @@ def gm_status():
     pc1 = _call_pc1("GET", "game/status")
     dmx = controller.get_status()
     return {
-        "stage":    pc1.get("stage", "unknown"),
-        "attempts": pc1.get("attempts", 0),
-        "dmx":      "ONLINE" if dmx["dmx_streaming"] else "OFFLINE",
+        "stage":         pc1.get("stage", "unknown"),
+        "attempts":      pc1.get("attempts", 0),
+        "timer_sec":     pc1.get("timer_sec", 0),
+        "timer_running": pc1.get("timer_running", False),
+        "dmx":           "ONLINE" if dmx["dmx_streaming"] else "OFFLINE",
     }
 
 
@@ -761,6 +791,8 @@ def gm_lights(action: str):
 def gm_game(action: str):
     endpoint_map = {
         "reset":   "game/reset",
+        "start":   "game/start",
+        "pause":   "game/pause",
         "skip_s2": "game/skip_s2",
         "victory": "game/victory",
         "hint":    "game/audio/hint",
@@ -1179,7 +1211,7 @@ class ControllerApp:
         self.root = root
         self.root.title("Escape Room Controller — PC 2")
         self.root.configure(bg="#111111")
-        self.root.geometry("740x600")
+        self.root.geometry("740x720")
         self.root.resizable(False, False)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -1191,6 +1223,7 @@ class ControllerApp:
         self._build_ui()
         self._poll_log()
         self._refresh_status()
+        self._poll_game_status()
 
     def _on_close(self):
         controller.blackout()
@@ -1213,6 +1246,44 @@ class ControllerApp:
 
         tk.Label(bar, text="ESCAPE ROOM CONTROLLER",
                  fg="#333333", bg="#1a1a1a", font=self.f_small).pack(side=tk.RIGHT, padx=14)
+
+        # ── Game Controls ──
+        tk.Frame(self.root, bg="#2a2a2a", height=1).pack(fill=tk.X, padx=16, pady=4)
+        gf = tk.Frame(self.root, bg="#111111", padx=16, pady=8)
+        gf.pack(fill=tk.X)
+        tk.Label(gf, text="GAME CONTROLS", fg="#444444",
+                 bg="#111111", font=self.f_small).pack(anchor="w", pady=(0, 6))
+        gc_row = tk.Frame(gf, bg="#111111")
+        gc_row.pack(anchor="w")
+
+        tk.Button(gc_row, text="▶  START",
+                  command=lambda: self._gm_action("game/start"),
+                  font=self.f_medium, fg="#000000", bg="#00cc33",
+                  activebackground="#00ff41", relief=tk.FLAT,
+                  padx=12, pady=8, cursor="hand2").pack(side=tk.LEFT, padx=(0, 4))
+
+        self.pause_btn = tk.Button(gc_row, text="⏸  PAUSE",
+                  command=lambda: self._gm_action("game/pause"),
+                  font=self.f_medium, fg="#000000", bg="#ff8c00",
+                  activebackground="#ffaa33", relief=tk.FLAT,
+                  padx=12, pady=8, cursor="hand2")
+        self.pause_btn.pack(side=tk.LEFT, padx=4)
+
+        tk.Button(gc_row, text="🏆  WIN",
+                  command=lambda: self._gm_action("game/victory"),
+                  font=self.f_medium, fg="#ffffff", bg="#cc0077",
+                  activebackground="#ff0099", relief=tk.FLAT,
+                  padx=12, pady=8, cursor="hand2").pack(side=tk.LEFT, padx=4)
+
+        tk.Button(gc_row, text="↺  RESET",
+                  command=self._confirm_reset,
+                  font=self.f_medium, fg="#ffffff", bg="#881111",
+                  activebackground="#cc2222", relief=tk.FLAT,
+                  padx=12, pady=8, cursor="hand2").pack(side=tk.LEFT, padx=4)
+
+        self.game_timer_lbl = tk.Label(gc_row, text="⏱  --:--",
+                                       fg="#555555", bg="#111111", font=self.f_medium)
+        self.game_timer_lbl.pack(side=tk.LEFT, padx=(20, 0))
 
         # ── Presets ──
         pf = tk.Frame(self.root, bg="#111111", padx=16, pady=10)
@@ -1298,6 +1369,37 @@ class ControllerApp:
         self.log_box.pack(fill=tk.BOTH, expand=True, pady=(4, 10))
 
     # ── Interaction ────────────────────────────────────────────────────────────
+
+    def _gm_action(self, endpoint: str):
+        def _do():
+            result = _call_pc1("POST", endpoint)
+            self._log(f"GM {endpoint} → {result}")
+            status = _call_pc1("GET", "game/status")
+            self.root.after(0, lambda: self._update_game_status_ui(status))
+        threading.Thread(target=_do, daemon=True).start()
+
+    def _confirm_reset(self):
+        if tkinter.messagebox.askyesno("Reset Game", "Reset the game back to Stage 1?"):
+            self._gm_action("game/reset")
+
+    def _poll_game_status(self):
+        def _fetch():
+            result = _call_pc1("GET", "game/status")
+            self.root.after(0, lambda: self._update_game_status_ui(result))
+        threading.Thread(target=_fetch, daemon=True).start()
+        self.root.after(2000, self._poll_game_status)
+
+    def _update_game_status_ui(self, status: dict):
+        sec     = status.get("timer_sec", 0)
+        running = status.get("timer_running", False)
+        m, s    = divmod(sec, 60)
+        if sec == 0 and not running:
+            self.game_timer_lbl.config(text="⏱  --:--", fg="#555555")
+        else:
+            icon = "▶" if running else "⏸"
+            clr  = "#ffd700" if running else "#ff8c00"
+            self.game_timer_lbl.config(text=f"⏱  {icon} {m:02d}:{s:02d}", fg=clr)
+        self.pause_btn.config(text="⏸  PAUSE" if running else "▶  RESUME")
 
     def _open_fixture_manager(self):
         FixtureManagerWindow(self.root)

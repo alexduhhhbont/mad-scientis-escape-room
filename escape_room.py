@@ -241,14 +241,36 @@ def _require_key(x_api_key: str = Header(...)):
 @pc1_api.get("/game/status")
 def api_game_status():
     if _game_app:
-        return {"stage": _game_app.stage, "attempts": _game_app.attempt_count}
-    return {"stage": "starting", "attempts": 0}
+        elapsed = _game_app.game_elapsed_sec
+        if _game_app.game_running and _game_app.game_start_time:
+            elapsed += time.monotonic() - _game_app.game_start_time
+        return {
+            "stage":         _game_app.stage,
+            "attempts":      _game_app.attempt_count,
+            "timer_sec":     int(elapsed),
+            "timer_running": _game_app.game_running,
+        }
+    return {"stage": "starting", "attempts": 0, "timer_sec": 0, "timer_running": False}
 
 
 @pc1_api.post("/game/reset", dependencies=[Depends(_require_key)])
 def api_game_reset():
     if _game_app:
         _game_app.gm_reset()
+    return {"status": "ok"}
+
+
+@pc1_api.post("/game/start", dependencies=[Depends(_require_key)])
+def api_game_start():
+    if _game_app:
+        _game_app.gm_start()
+    return {"status": "ok"}
+
+
+@pc1_api.post("/game/pause", dependencies=[Depends(_require_key)])
+def api_game_pause():
+    if _game_app:
+        _game_app.gm_pause()
     return {"status": "ok"}
 
 
@@ -360,18 +382,23 @@ class EscapeRoomApp:
         self.root.lift()
 
         self.root.protocol("WM_DELETE_WINDOW", lambda: None)
-        self.root.bind("<Alt-F4>",  lambda e: "break")
-        self.root.bind("<Alt-Tab>", lambda e: "break")
-        self.root.bind("<Escape>",  lambda e: "break")
+        self.root.bind("<Alt-F4>",   lambda e: "break")
+        self.root.bind("<Alt-Tab>",  lambda e: "break")
+        self.root.bind("<Escape>",   lambda e: "break")
+        self.root.bind("<Super_L>",  lambda e: "break")
+        self.root.bind("<Super_R>",  lambda e: "break")
         self.root.bind(ADMIN_COMBO, self._admin_quit)
 
         self._f12_presses = 0
         self._f12_timer   = None
         self.root.bind("<F12>", self._f12_quit)
 
-        self.stage         = "intro"
-        self.attempt_count = 0
-        self.switch_states = [False] * 6
+        self.stage            = "intro"
+        self.attempt_count    = 0
+        self.switch_states    = [False] * 6
+        self.game_elapsed_sec = 0.0
+        self.game_start_time  = None   # monotonic() when last resumed; None = not running
+        self.game_running     = False
 
         self.f_mono   = tkfont.Font(family="Courier", size=13, weight="bold")
         self.f_big    = tkfont.Font(family="Courier", size=28, weight="bold")
@@ -396,6 +423,7 @@ class EscapeRoomApp:
         self.root.after(500, self._start_intro_sequence)
 
         self._tick_clock()
+        self._tick_timer()
         self._idle_lights()
 
     # ══════════════════════════════════════════
@@ -477,6 +505,9 @@ class EscapeRoomApp:
         self.clock_lbl = tk.Label(header, text="", fg=PINK,
                                   bg=BG_HEADER, font=self.f_small)
         self.clock_lbl.pack(side=tk.RIGHT, padx=16)
+        self.timer_lbl = tk.Label(header, text="--:--", fg=DIM,
+                                  bg=BG_HEADER, font=self.f_medium)
+        self.timer_lbl.pack(side=tk.RIGHT, padx=24)
 
     def _build_footer(self):
         footer = tk.Frame(self.outer, bg=BG_PANEL, pady=4)
@@ -732,12 +763,34 @@ class EscapeRoomApp:
     # ══════════════════════════════════════════
     def gm_reset(self):
         def _do():
-            self.stage = "password"
-            self.attempt_count = 0
-            self.switch_states = [False] * 6
+            self.stage            = "password"
+            self.attempt_count    = 0
+            self.switch_states    = [False] * 6
+            self.game_elapsed_sec = 0.0
+            self.game_start_time  = None
+            self.game_running     = False
             self.audio.restore_theme()
             self._build_password_stage()
             self._start_cursor_blink()
+        self.root.after(0, _do)
+
+    def gm_start(self):
+        def _do():
+            if not self.game_running:
+                self.game_start_time = time.monotonic()
+                self.game_running    = True
+        self.root.after(0, _do)
+
+    def gm_pause(self):
+        """Toggle timer between running and paused."""
+        def _do():
+            if self.game_running:
+                self.game_elapsed_sec += time.monotonic() - self.game_start_time
+                self.game_start_time   = None
+                self.game_running      = False
+            else:
+                self.game_start_time = time.monotonic()
+                self.game_running    = True
         self.root.after(0, _do)
 
     def gm_skip_to_stage2(self):
@@ -771,6 +824,18 @@ class EscapeRoomApp:
     def _tick_clock(self):
         self.clock_lbl.config(text=time.strftime("%Y-%m-%d  %H:%M:%S"))
         self.root.after(1000, self._tick_clock)
+
+    def _tick_timer(self):
+        if self.game_running:
+            elapsed = self.game_elapsed_sec + (time.monotonic() - self.game_start_time)
+            m, s = divmod(int(elapsed), 60)
+            self.timer_lbl.config(text=f"▶  {m:02d}:{s:02d}", fg=YELLOW)
+        elif self.game_elapsed_sec > 0:
+            m, s = divmod(int(self.game_elapsed_sec), 60)
+            self.timer_lbl.config(text=f"⏸  {m:02d}:{s:02d}", fg=ORANGE)
+        else:
+            self.timer_lbl.config(text="--:--", fg=DIM)
+        self.root.after(500, self._tick_timer)
 
     def _start_cursor_blink(self):
         self._blink_state = True
