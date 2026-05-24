@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-MAD SCIENTIST ESCAPE ROOM TERMINAL
-====================================
+WONKY'S CANDY FACTORY CONTROL TERMINAL
+========================================
 Full-screen locked terminal interface.
 
 STAGE 1 — Password lock
@@ -24,34 +24,52 @@ import requests
 # ─────────────── CONFIGURATION ───────────────
 PASSWORD        = "CHAOS42"
 ADMIN_COMBO     = "<Control-Shift-Alt-q>"
-TITLE           = "DR. VOSS CONTAINMENT SYSTEM v2.3.1"
+TITLE           = "WONKY'S CANDY FACTORY CONTROL SYSTEM v1.0"
 
 # True = ON, False = OFF  (index 0 = switch 1)
 SWITCH_SOLUTION = [True, True, False, False, True, False]
 
 SWITCH_LABELS = [
-    "REACTOR CORE",
-    "BIO CHAMBER",
-    "NEURAL LINK",
-    "PLASMA FEED",
-    "FLUX CAPACITOR",
-    "CRYOGENIC UNIT",
+    "SUGAR PUMP",
+    "CHOC VAT",
+    "GUMMY MOLD",
+    "CARAMEL MIX",
+    "SPRINKLES",
+    "WRAPPER",
 ]
 
 FLAVOR_LINES = [
-    "BIOHAZARD LEVEL: CRITICAL",
-    "CONTAINMENT STATUS: BREACHED",
-    "NEURAL INTERFACE: ACTIVE",
-    "QUANTUM FLUX: UNSTABLE",
-    "EXPERIMENT #7743: ONGOING",
+    "SUGAR LEVEL: MAXIMUM",
+    "GUMMY BEARS: COOKING",
+    "CHOCOLATE FLOW: ACTIVE",
+    "LOLLIPOP BATCH: READY",
+    "SPRINKLE COUNT: 1,000,000",
 ]
 
-FAIL_MSG    = "⚠  INVALID CODE — SECURITY ALERT LOGGED"
-SWITCH_FAIL = "⚠  INCORRECT CONFIGURATION — SEQUENCE REJECTED"
+FAIL_MSG    = "⚠  WRONG CODE — THE MACHINE IS CONFUSED!"
+SWITCH_FAIL = "⚠  WRONG LEVERS — CHOCOLATE SPILL DETECTED!"
 
-PC2_URL     = "http://192.168.1.XX:8000"          # ← set PC 2's LAN IP here
+PC2_URL     = "http://192.168.178.84:8000"
 PC2_API_KEY = "change-me-to-something-random"
 # ──────────────────────────────────────────────
+
+# ─────────────── CANDY COLOUR PALETTE ───────────────
+BG          = "#1a0030"   # dark purple background
+BG_PANEL    = "#2a0045"   # slightly lighter panel bg
+BG_HEADER   = "#3d0060"   # header bar
+PINK        = "#ff69b4"   # hot pink — primary accent
+YELLOW      = "#ffd700"   # gold/candy yellow
+PURPLE      = "#cc44ff"   # bright purple
+ORANGE      = "#ff8c00"   # orange
+WHITE       = "#fff0ff"   # warm white text
+DIM         = "#884488"   # dimmed purple text
+BORDER      = "#8800cc"   # border colour
+BTN_OFF_BG  = "#3d0060"
+BTN_OFF_FG  = "#aa55cc"
+BTN_ON_BG   = "#cc0077"
+BTN_ON_FG   = "#ffffff"
+SCAN_LINE   = "#220033"   # scanline tint
+# ─────────────────────────────────────────────────────
 
 
 def notify_pc2(endpoint: str, payload: dict):
@@ -102,7 +120,7 @@ class ScanlineCanvas(tk.Canvas):
         h = self.winfo_height() or 900
         w = self.winfo_width() or 1600
         for y in range(self._offset % 4, h, 4):
-            self.create_line(0, y, w, y, fill="#001a00", tags="scanline", width=1)
+            self.create_line(0, y, w, y, fill=SCAN_LINE, tags="scanline", width=1)
         self._offset = (self._offset + 1) % 4
         self.after(80, self._draw_scanlines)
 
@@ -111,7 +129,7 @@ class EscapeRoomApp:
     def __init__(self, root):
         self.root = root
         self.root.title(TITLE)
-        self.root.configure(bg="#000000")
+        self.root.configure(bg=BG)
 
         # Force fullscreen on Linux
         self.root.attributes("-fullscreen", True)
@@ -153,16 +171,16 @@ class EscapeRoomApp:
         self.f_giant  = tkfont.Font(family="Courier", size=36, weight="bold")
 
         # Outer wrapper
-        self.outer = tk.Frame(self.root, bg="#000000")
+        self.outer = tk.Frame(self.root, bg=BG)
         self.outer.place(relx=0, rely=0, relwidth=1, relheight=1)
 
-        self.scan = ScanlineCanvas(self.outer, bg="#000000", highlightthickness=0)
+        self.scan = ScanlineCanvas(self.outer, bg=BG, highlightthickness=0)
         self.scan.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         self._build_header()
         self._build_footer()
 
-        self.content = tk.Frame(self.outer, bg="#000000")
+        self.content = tk.Frame(self.outer, bg=BG)
         self.content.pack(fill=tk.BOTH, expand=True, padx=60, pady=10)
 
         self._build_password_stage()
@@ -173,47 +191,45 @@ class EscapeRoomApp:
     #  SHARED CHROME
     # ══════════════════════════════════════════
     def _build_header(self):
-        header = tk.Frame(self.outer, bg="#002200", pady=6)
+        header = tk.Frame(self.outer, bg=BG_HEADER, pady=6)
         header.pack(fill=tk.X, side=tk.TOP)
-        first = True
-        for color in ("#ff4444", "#ffcc00", "#00ff44"):
-            tk.Label(header, text="● ", fg=color, bg="#002200",
-                     font=self.f_small).pack(side=tk.LEFT, padx=(12 if first else 0, 0))
-            first = False
+        for color in (PINK, YELLOW, PURPLE):
+            tk.Label(header, text="● ", fg=color, bg=BG_HEADER,
+                     font=self.f_small).pack(side=tk.LEFT, padx=4)
         lbl = GlitchLabel(header, text=f"  {TITLE}  ",
-                          fg="#00ff41", bg="#002200", font=self.f_mono)
+                          fg=YELLOW, bg=BG_HEADER, font=self.f_mono)
         lbl.pack(side=tk.LEFT, padx=20)
         lbl.start_glitch(chance=0.02)
-        self.clock_lbl = tk.Label(header, text="", fg="#00aa22",
-                                  bg="#002200", font=self.f_small)
+        self.clock_lbl = tk.Label(header, text="", fg=PINK,
+                                  bg=BG_HEADER, font=self.f_small)
         self.clock_lbl.pack(side=tk.RIGHT, padx=16)
 
     def _build_footer(self):
-        footer = tk.Frame(self.outer, bg="#000d00", pady=4)
+        footer = tk.Frame(self.outer, bg=BG_PANEL, pady=4)
         footer.pack(fill=tk.X, side=tk.BOTTOM)
         tk.Label(footer,
-                 text="UNAUTHORIZED ACCESS WILL BE PROSECUTED  |  DR. VOSS LABORATORIES  |  LEVEL-5 RESTRICTED AREA",
-                 fg="#003300", bg="#000d00", font=self.f_small).pack()
+                 text="🍬  WONKY'S SWEET FACTORY  |  AUTHORISED WORKERS ONLY  |  KEEP OUT — CANDY MACHINERY IN OPERATION  🍭",
+                 fg=DIM, bg=BG_PANEL, font=self.f_small).pack()
 
     def _build_left_panel(self, parent):
-        left = tk.Frame(parent, bg="#000d00", bd=1, relief=tk.SOLID,
-                        highlightbackground="#003300", highlightthickness=1)
+        left = tk.Frame(parent, bg=BG_PANEL, bd=1, relief=tk.SOLID,
+                        highlightbackground=BORDER, highlightthickness=1)
         left.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 30), pady=10, ipadx=12, ipady=12)
-        tk.Label(left, text="[ SYSTEM STATUS ]", fg="#007700",
-                 bg="#000d00", font=self.f_small).pack(anchor="w", pady=(0, 8))
+        tk.Label(left, text="[ FACTORY STATUS ]", fg=PURPLE,
+                 bg=BG_PANEL, font=self.f_small).pack(anchor="w", pady=(0, 8))
         for line in FLAVOR_LINES:
-            row = tk.Frame(left, bg="#000d00")
+            row = tk.Frame(left, bg=BG_PANEL)
             row.pack(anchor="w", pady=2)
-            tk.Label(row, text="▶ ", fg="#005500", bg="#000d00",
+            tk.Label(row, text="▶ ", fg=DIM, bg=BG_PANEL,
                      font=self.f_small).pack(side=tk.LEFT)
-            lbl = GlitchLabel(row, text=line, fg="#00cc33", bg="#000d00", font=self.f_small)
+            lbl = GlitchLabel(row, text=line, fg=PINK, bg=BG_PANEL, font=self.f_small)
             lbl.pack(side=tk.LEFT)
             lbl.start_glitch(chance=0.015, interval=120 + random.randint(0, 80))
-        tk.Label(left, text="", bg="#000d00").pack()
-        tk.Label(left, text="[ ATTEMPTS ]", fg="#007700",
-                 bg="#000d00", font=self.f_small).pack(anchor="w")
-        self.attempt_lbl = tk.Label(left, text="0 FAILED", fg="#ff4444",
-                                    bg="#000d00", font=self.f_small)
+        tk.Label(left, text="", bg=BG_PANEL).pack()
+        tk.Label(left, text="[ ATTEMPTS ]", fg=PURPLE,
+                 bg=BG_PANEL, font=self.f_small).pack(anchor="w")
+        self.attempt_lbl = tk.Label(left, text="0 FAILED", fg=ORANGE,
+                                    bg=BG_PANEL, font=self.f_small)
         self.attempt_lbl.pack(anchor="w", pady=2)
 
     # ══════════════════════════════════════════
@@ -223,31 +239,31 @@ class EscapeRoomApp:
         self._clear_content()
         self._build_left_panel(self.content)
 
-        center = tk.Frame(self.content, bg="#000000")
+        center = tk.Frame(self.content, bg=BG)
         center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        tk.Label(center, text="☣", fg="#003300", bg="#000000",
+        tk.Label(center, text="🍭", fg=PINK, bg=BG,
                  font=tkfont.Font(family="Courier", size=90)).pack(pady=(10, 0))
 
-        self.lock_icon = tk.Label(center, text="🔒  SYSTEM LOCKED",
-                                  fg="#ff4444", bg="#000000", font=self.f_huge)
+        self.lock_icon = tk.Label(center, text="🔒  FACTORY LOCKED",
+                                  fg=PINK, bg=BG, font=self.f_huge)
         self.lock_icon.pack(pady=(0, 4))
 
-        tk.Label(center, text="Enter the authorization code to gain access.",
-                 fg="#005500", bg="#000000", font=self.f_medium).pack(pady=(0, 30))
+        tk.Label(center, text="Enter the secret code to start the candy machine!",
+                 fg=DIM, bg=BG, font=self.f_medium).pack(pady=(0, 30))
 
-        entry_frame = tk.Frame(center, bg="#000000")
+        entry_frame = tk.Frame(center, bg=BG)
         entry_frame.pack()
 
-        tk.Label(entry_frame, text="CODE ► ", fg="#007700",
-                 bg="#000000", font=self.f_big).pack(side=tk.LEFT)
+        tk.Label(entry_frame, text="CODE ► ", fg=PURPLE,
+                 bg=BG, font=self.f_big).pack(side=tk.LEFT)
 
         self.entry_var = tk.StringVar()
         self.entry = tk.Entry(entry_frame, textvariable=self.entry_var,
-                              font=self.f_big, fg="#00ff41", bg="#001100",
-                              insertbackground="#00ff41", relief=tk.FLAT, bd=0,
-                              highlightthickness=2, highlightbackground="#003300",
-                              highlightcolor="#00ff41", show="█", width=12,
+                              font=self.f_big, fg=YELLOW, bg=BG_PANEL,
+                              insertbackground=YELLOW, relief=tk.FLAT, bd=0,
+                              highlightthickness=2, highlightbackground=BORDER,
+                              highlightcolor=PINK, show="★", width=12,
                               justify="center")
         self.entry.pack(side=tk.LEFT, ipady=8, ipadx=10)
         self.entry.focus_set()
@@ -255,13 +271,13 @@ class EscapeRoomApp:
 
         self.submit_btn = tk.Button(entry_frame, text=" SUBMIT ",
                                     command=self._check_password,
-                                    font=self.f_medium, fg="#000000", bg="#00cc33",
-                                    activebackground="#00ff41", activeforeground="#000000",
+                                    font=self.f_medium, fg=BG, bg=PINK,
+                                    activebackground=YELLOW, activeforeground=BG,
                                     relief=tk.FLAT, bd=0, padx=12, pady=8, cursor="hand2")
         self.submit_btn.pack(side=tk.LEFT, padx=(16, 0))
 
-        self.feedback_lbl = tk.Label(center, text="", fg="#ff4444",
-                                     bg="#000000", font=self.f_medium)
+        self.feedback_lbl = tk.Label(center, text="", fg=ORANGE,
+                                     bg=BG, font=self.f_medium)
         self.feedback_lbl.pack(pady=(16, 0))
 
     def _check_password(self, event=None):
@@ -274,7 +290,7 @@ class EscapeRoomApp:
             self.attempt_count += 1
             self.attempt_lbl.config(text=f"{self.attempt_count} FAILED")
             self.entry_var.set("")
-            self.feedback_lbl.config(text=FAIL_MSG, fg="#ff4444")
+            self.feedback_lbl.config(text=FAIL_MSG, fg=ORANGE)
             notify_pc2("lights/sequence", {"type": "flash", "color": [255, 0, 0],
                                            "intensity": 255, "frequency_hz": 3.0, "duration_sec": 3.0})
             self._flash_red(3)
@@ -284,7 +300,7 @@ class EscapeRoomApp:
     # ══════════════════════════════════════════
     def _transition_to_switches(self):
         self.stage = "switches"
-        self.root.configure(bg="#000000")
+        self.root.configure(bg=BG)
         notify_pc2("lights/sequence", {"type": "flash", "color": [255, 140, 0],
                                        "intensity": 200, "frequency_hz": 1.5, "duration_sec": 3.0})
         self._build_switch_stage()
@@ -293,67 +309,67 @@ class EscapeRoomApp:
         self._clear_content()
         self._build_left_panel(self.content)
 
-        center = tk.Frame(self.content, bg="#000000")
+        center = tk.Frame(self.content, bg=BG)
         center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        tk.Label(center, text="🔓  STAGE 1 COMPLETE",
-                 fg="#00ff41", bg="#000000", font=self.f_huge).pack(pady=(8, 2))
+        tk.Label(center, text="🔓  STAGE 1 COMPLETE — GREAT JOB!",
+                 fg=YELLOW, bg=BG, font=self.f_huge).pack(pady=(8, 2))
 
         tk.Label(center,
-                 text="SECONDARY AUTHORIZATION REQUIRED — Configure the activation sequence.",
-                 fg="#007700", bg="#000000", font=self.f_medium).pack(pady=(0, 18))
+                 text="Now set the correct levers to start the candy production line!",
+                 fg=DIM, bg=BG, font=self.f_medium).pack(pady=(0, 18))
 
-        switches_frame = tk.Frame(center, bg="#000000")
+        switches_frame = tk.Frame(center, bg=BG)
         switches_frame.pack(pady=4)
 
         self.switch_btns  = []
         self.switch_lamps = []
 
         for i in range(6):
-            col = tk.Frame(switches_frame, bg="#000d00", bd=1,
-                           highlightbackground="#003300", highlightthickness=1,
+            col = tk.Frame(switches_frame, bg=BG_PANEL, bd=1,
+                           highlightbackground=BORDER, highlightthickness=1,
                            padx=18, pady=14)
             col.grid(row=0, column=i, padx=10, pady=4)
 
-            tk.Label(col, text=f"SW-{i+1}", fg="#005500",
-                     bg="#000d00", font=self.f_small).pack()
+            tk.Label(col, text=f"LVR-{i+1}", fg=DIM,
+                     bg=BG_PANEL, font=self.f_small).pack()
 
-            lamp = tk.Label(col, text="◉", fg="#220000", bg="#000d00",
+            lamp = tk.Label(col, text="◉", fg="#330022", bg=BG_PANEL,
                             font=tkfont.Font(family="Courier", size=26))
             lamp.pack(pady=(6, 4))
             self.switch_lamps.append(lamp)
 
             btn = tk.Button(col, text="OFF", width=6,
                             font=self.f_mono,
-                            fg="#005500", bg="#001100",
-                            activebackground="#003300",
+                            fg=BTN_OFF_FG, bg=BTN_OFF_BG,
+                            activebackground=BTN_ON_BG,
                             relief=tk.RAISED, bd=3,
                             cursor="hand2",
                             command=lambda idx=i: self._toggle_switch(idx))
             btn.pack(pady=(2, 6))
             self.switch_btns.append(btn)
 
-            tk.Label(col, text=SWITCH_LABELS[i], fg="#004400",
-                     bg="#000d00", font=self.f_small,
+            tk.Label(col, text=SWITCH_LABELS[i], fg=DIM,
+                     bg=BG_PANEL, font=self.f_small,
                      wraplength=90, justify="center").pack()
 
-        confirm_frame = tk.Frame(center, bg="#000000")
+        confirm_frame = tk.Frame(center, bg=BG)
         confirm_frame.pack(pady=20)
 
         self.confirm_btn = tk.Button(confirm_frame,
-                                     text="  ▶  ENGAGE SEQUENCE  ◀  ",
+                                     text="  ▶  START THE MACHINE  ◀  ",
                                      command=self._check_switches,
                                      font=self.f_medium,
-                                     fg="#000000", bg="#00cc33",
-                                     activebackground="#00ff41",
-                                     activeforeground="#000000",
+                                     fg=BG, bg=PINK,
+                                     activebackground=YELLOW,
+                                     activeforeground=BG,
                                      relief=tk.FLAT, bd=0,
                                      padx=20, pady=12,
                                      cursor="hand2")
         self.confirm_btn.pack()
 
         self.switch_feedback = tk.Label(center, text="",
-                                        fg="#ff4444", bg="#000000", font=self.f_medium)
+                                        fg=ORANGE, bg=BG, font=self.f_medium)
         self.switch_feedback.pack(pady=(10, 0))
 
     def _toggle_switch(self, idx):
@@ -361,11 +377,11 @@ class EscapeRoomApp:
             return
         self.switch_states[idx] = not self.switch_states[idx]
         on = self.switch_states[idx]
-        self.switch_lamps[idx].config(fg="#00ff41" if on else "#220000")
+        self.switch_lamps[idx].config(fg=PINK if on else "#330022")
         self.switch_btns[idx].config(
             text="ON " if on else "OFF",
-            fg="#00ff41" if on else "#005500",
-            bg="#002800" if on else "#001100",
+            fg=BTN_ON_FG if on else BTN_OFF_FG,
+            bg=BTN_ON_BG if on else BTN_OFF_BG,
             relief=tk.SUNKEN if on else tk.RAISED,
         )
         self.switch_feedback.config(text="")
@@ -378,7 +394,7 @@ class EscapeRoomApp:
         else:
             self.attempt_count += 1
             self.attempt_lbl.config(text=f"{self.attempt_count} FAILED")
-            self.switch_feedback.config(text=SWITCH_FAIL, fg="#ff4444")
+            self.switch_feedback.config(text=SWITCH_FAIL, fg=ORANGE)
             notify_pc2("lights/sequence", {"type": "flash", "color": [255, 0, 0],
                                            "intensity": 255, "frequency_hz": 3.0, "duration_sec": 3.0})
             self._flash_red(3)
@@ -388,41 +404,40 @@ class EscapeRoomApp:
     # ══════════════════════════════════════════
     def _show_final_success(self):
         self._clear_content()
-        self.root.configure(bg="#000000")
-        notify_pc2("lights/sequence", {"type": "pulse", "color": [0, 255, 65],
+        self.root.configure(bg=BG)
+        notify_pc2("lights/sequence", {"type": "pulse", "color": [255, 105, 180],
                                        "intensity": 255, "frequency_hz": 0.4, "duration_sec": 300.0})
 
-        center = tk.Frame(self.content, bg="#000000")
+        center = tk.Frame(self.content, bg=BG)
         center.pack(fill=tk.BOTH, expand=True)
 
-        self.final_icon = tk.Label(center, text="✔", fg="#00ff41", bg="#000000",
+        self.final_icon = tk.Label(center, text="🍬", fg=YELLOW, bg=BG,
                                    font=tkfont.Font(family="Courier", size=100, weight="bold"))
         self.final_icon.pack(pady=(20, 6))
 
-        tk.Label(center, text="▓▓▓  CONTAINMENT OVERRIDE COMPLETE  ▓▓▓",
-                 fg="#00ff41", bg="#000000", font=self.f_giant).pack(pady=(0, 6))
+        tk.Label(center, text="★★★  CANDY MACHINE ACTIVATED!  ★★★",
+                 fg=YELLOW, bg=BG, font=self.f_giant).pack(pady=(0, 6))
 
-        tk.Label(center, text="ALL SYSTEMS UNLOCKED — EXPERIMENT TERMINATED",
-                 fg="#00cc33", bg="#000000", font=self.f_big).pack(pady=(0, 20))
+        tk.Label(center, text="ALL LEVERS SET — PRODUCTION LINE RUNNING!",
+                 fg=PINK, bg=BG, font=self.f_big).pack(pady=(0, 20))
 
-        tk.Frame(center, bg="#003300", height=2).pack(fill=tk.X, padx=100, pady=8)
+        tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=100, pady=8)
 
         tk.Label(center,
-                 text="Well done, Agent. Dr. Voss's experiment has been shut down.\n"
-                      "The laboratory is now safe. Exit through the main corridor.",
-                 fg="#009922", bg="#000000", font=self.f_medium,
+                 text="Amazing work! You've started Wonky's candy machine!\n"
+                      "The factory is now making sweets. Collect your treat and escape!",
+                 fg=WHITE, bg=BG, font=self.f_medium,
                  justify="center").pack(pady=10)
 
-        tk.Frame(center, bg="#003300", height=2).pack(fill=tk.X, padx=100, pady=8)
+        tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=100, pady=8)
 
-        tk.Label(center, text="[ ESCAPE ROOM COMPLETE ]",
-                 fg="#005500", bg="#000000", font=self.f_mono).pack(pady=(8, 0))
+        tk.Label(center, text="[ ESCAPE ROOM COMPLETE — YOU WIN! ]",
+                 fg=DIM, bg=BG, font=self.f_mono).pack(pady=(8, 0))
 
         self._pulse_final()
 
     def _pulse_final(self):
-        colors = ["#003300", "#006600", "#009900", "#00cc00",
-                  "#00ff41", "#00cc00", "#009900", "#006600"]
+        colors = [PINK, YELLOW, PURPLE, ORANGE, WHITE, ORANGE, PURPLE, YELLOW]
         def cycle(i=0):
             if self.stage != "complete":
                 return
@@ -442,7 +457,7 @@ class EscapeRoomApp:
             if n <= 0:
                 callback()
                 return
-            self.root.configure(bg="#001a00" if n % 2 == 0 else "#000000")
+            self.root.configure(bg="#3d0060" if n % 2 == 0 else BG)
             self.root.after(100, lambda: flash(n - 1))
         flash(6)
 
@@ -458,7 +473,7 @@ class EscapeRoomApp:
         if self.stage != "password":
             return
         try:
-            color = "#00ff41" if self._blink_state else "#003300"
+            color = PINK if self._blink_state else BORDER
             self.entry.config(highlightcolor=color, highlightbackground=color)
             self._blink_state = not self._blink_state
             self.root.after(500, self._blink)
@@ -468,8 +483,8 @@ class EscapeRoomApp:
     def _flash_red(self, times):
         if times <= 0:
             return
-        self.root.configure(bg="#1a0000")
-        self.root.after(80, lambda: self.root.configure(bg="#000000"))
+        self.root.configure(bg="#3a0020")
+        self.root.after(80, lambda: self.root.configure(bg=BG))
         self.root.after(160, lambda: self._flash_red(times - 1))
 
     def _admin_quit(self, event=None):
