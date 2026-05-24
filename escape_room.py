@@ -43,29 +43,29 @@ except ImportError:
 # ─────────────── GAME CONFIGURATION ───────────────
 PASSWORD        = "CHAOS42"
 ADMIN_COMBO     = "<Control-Shift-Alt-q>"
-TITLE           = "WONKY'S CANDY FACTORY CONTROL SYSTEM v1.0"
+TITLE           = "WONKY'S SNOEPFABRIEK CONTROLESYSTEEM v1.0"
 
 SWITCH_SOLUTION = [True, True, False, False, True, False]
 
 SWITCH_LABELS = [
-    "SUGAR PUMP",
-    "CHOC VAT",
-    "GUMMY MOLD",
-    "CARAMEL MIX",
-    "SPRINKLES",
-    "WRAPPER",
+    "SUIKERPOMP",
+    "CHOCOLADEVAT",
+    "GUMMIVORM",
+    "KARAMELMIXER",
+    "HAGELSLAG",
+    "VERPAKKING",
 ]
 
 FLAVOR_LINES = [
-    "SUGAR LEVEL: MAXIMUM",
-    "GUMMY BEARS: COOKING",
-    "CHOCOLATE FLOW: ACTIVE",
-    "LOLLIPOP BATCH: READY",
-    "SPRINKLE COUNT: 1,000,000",
+    "SUIKERNIVEAU: MAXIMAAL",
+    "GUMMIBEREN: KOKEN",
+    "CHOCOLADESTROOM: ACTIEF",
+    "LOLLY BATCH: GEREED",
+    "HAGELSLAG TELLING: 1.000.000",
 ]
 
-FAIL_MSG    = "⚠  WRONG CODE — THE MACHINE IS CONFUSED!"
-SWITCH_FAIL = "⚠  WRONG LEVERS — CHOCOLATE SPILL DETECTED!"
+FAIL_MSG    = "⚠  VERKEERDE CODE — DE MACHINE IS IN DE WAR!"
+SWITCH_FAIL = "⚠  VERKEERDE HENDELS — CHOCOLADE OVERSTROMING!"
 
 # ─────────────── PC2 / LIGHTS ───────────────
 PC2_URL     = "http://192.168.178.84:8000"
@@ -436,10 +436,10 @@ class EscapeRoomApp:
         tk.Label(center, text="🍭", bg=BG,
                  font=tkfont.Font(family="Courier", size=100)).pack(pady=(50, 10))
 
-        tk.Label(center, text="WONKY'S CANDY FACTORY",
+        tk.Label(center, text="WONKY'S SNOEPFABRIEK",
                  fg=YELLOW, bg=BG, font=self.f_giant).pack(pady=(0, 10))
 
-        self._intro_sub = tk.Label(center, text="INITIALISING SYSTEMS...",
+        self._intro_sub = tk.Label(center, text="SYSTEMEN INITIALISEREN...",
                                    fg=PINK, bg=BG, font=self.f_medium)
         self._intro_sub.pack()
         self._intro_blink_state = True
@@ -481,22 +481,22 @@ class EscapeRoomApp:
         tk.Label(center, text="🍭", bg=BG,
                  font=tkfont.Font(family="Courier", size=100)).pack(pady=(30, 6))
 
-        tk.Label(center, text="WONKY'S CANDY FACTORY",
+        tk.Label(center, text="WONKY'S SNOEPFABRIEK",
                  fg=YELLOW, bg=BG, font=self.f_giant).pack(pady=(0, 6))
 
         tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=120, pady=12)
 
-        self._wait_lbl = tk.Label(center, text="★  STAND BY  ★",
+        self._wait_lbl = tk.Label(center, text="★  WACHT AAN  ★",
                                   fg=PINK, bg=BG, font=self.f_big)
         self._wait_lbl.pack(pady=(0, 10))
 
         tk.Label(center,
-                 text="Waiting for Game Master to start the session...",
+                 text="Wachten op de spelleider om het spel te starten...",
                  fg=DIM, bg=BG, font=self.f_medium).pack()
 
         tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=120, pady=12)
 
-        tk.Label(center, text="[ GAME MASTER: press  ▶ START  to begin ]",
+        tk.Label(center, text="[ SPELLEIDER: druk op  ▶ START  om te beginnen ]",
                  fg=DIM, bg=BG, font=self.f_small).pack()
 
         self._wait_blink_state = True
@@ -554,14 +554,14 @@ class EscapeRoomApp:
         footer = tk.Frame(self.outer, bg=BG_PANEL, pady=4)
         footer.pack(fill=tk.X, side=tk.BOTTOM)
         tk.Label(footer,
-                 text="🍬  WONKY'S SWEET FACTORY  |  AUTHORISED WORKERS ONLY  |  CANDY MACHINERY IN OPERATION  🍭",
+                 text="🍬  WONKY'S SNOEPFABRIEK  |  UITSLUITEND VOOR BEVOEGD PERSONEEL  |  SNOEPAPPARATUUR IN WERKING  🍭",
                  fg=DIM, bg=BG_PANEL, font=self.f_small).pack()
 
     def _build_left_panel(self, parent):
         left = tk.Frame(parent, bg=BG_PANEL, bd=1, relief=tk.SOLID,
                         highlightbackground=BORDER, highlightthickness=1)
         left.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 30), pady=10, ipadx=12, ipady=12)
-        tk.Label(left, text="[ FACTORY STATUS ]", fg=PURPLE,
+        tk.Label(left, text="[ FABRIEKSSTATUS ]", fg=PURPLE,
                  bg=BG_PANEL, font=self.f_small).pack(anchor="w", pady=(0, 8))
         for line in FLAVOR_LINES:
             row = tk.Frame(left, bg=BG_PANEL)
@@ -572,9 +572,9 @@ class EscapeRoomApp:
             lbl.pack(side=tk.LEFT)
             lbl.start_glitch(chance=0.015, interval=120 + random.randint(0, 80))
         tk.Label(left, text="", bg=BG_PANEL).pack()
-        tk.Label(left, text="[ ATTEMPTS ]", fg=PURPLE,
+        tk.Label(left, text="[ POGINGEN ]", fg=PURPLE,
                  bg=BG_PANEL, font=self.f_small).pack(anchor="w")
-        self.attempt_lbl = tk.Label(left, text="0 FAILED", fg=ORANGE,
+        self.attempt_lbl = tk.Label(left, text="0 MISLUKT", fg=ORANGE,
                                     bg=BG_PANEL, font=self.f_small)
         self.attempt_lbl.pack(anchor="w", pady=2)
 
@@ -591,11 +591,11 @@ class EscapeRoomApp:
         tk.Label(center, text="🍭", fg=PINK, bg=BG,
                  font=tkfont.Font(family="Courier", size=90)).pack(pady=(10, 0))
 
-        self.lock_icon = tk.Label(center, text="🔒  FACTORY LOCKED",
+        self.lock_icon = tk.Label(center, text="🔒  FABRIEK VERGRENDELD",
                                   fg=PINK, bg=BG, font=self.f_huge)
         self.lock_icon.pack(pady=(0, 4))
 
-        tk.Label(center, text="Enter the secret code to start the candy machine!",
+        tk.Label(center, text="Voer de geheime code in om de snoepfabriek te starten!",
                  fg=DIM, bg=BG, font=self.f_medium).pack(pady=(0, 30))
 
         entry_frame = tk.Frame(center, bg=BG)
@@ -615,7 +615,7 @@ class EscapeRoomApp:
         self.entry.focus_set()
         self.entry.bind("<Return>", self._check_password)
 
-        self.submit_btn = tk.Button(entry_frame, text=" SUBMIT ",
+        self.submit_btn = tk.Button(entry_frame, text=" BEVESTIGEN ",
                                     command=self._check_password,
                                     font=self.f_medium, fg=BG, bg=PINK,
                                     activebackground=YELLOW, activeforeground=BG,
@@ -634,7 +634,7 @@ class EscapeRoomApp:
             self._animate_flash(callback=self._transition_to_switches)
         else:
             self.attempt_count += 1
-            self.attempt_lbl.config(text=f"{self.attempt_count} FAILED")
+            self.attempt_lbl.config(text=f"{self.attempt_count} MISLUKT")
             self.entry_var.set("")
             self.feedback_lbl.config(text=FAIL_MSG, fg=ORANGE)
             self.audio.play_sfx(AUDIO_WRONG)
@@ -662,11 +662,11 @@ class EscapeRoomApp:
         center = tk.Frame(self.content, bg=BG)
         center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        tk.Label(center, text="🔓  STAGE 1 COMPLETE — GREAT JOB!",
+        tk.Label(center, text="🔓  FASE 1 VOLTOOID — GOED GEDAAN!",
                  fg=YELLOW, bg=BG, font=self.f_huge).pack(pady=(8, 2))
 
         tk.Label(center,
-                 text="Now set the correct levers to start the candy production line!",
+                 text="Zet nu de juiste hendels om de snoepproductielijn te starten!",
                  fg=DIM, bg=BG, font=self.f_medium).pack(pady=(0, 18))
 
         switches_frame = tk.Frame(center, bg=BG)
@@ -681,7 +681,7 @@ class EscapeRoomApp:
                            padx=18, pady=14)
             col.grid(row=0, column=i, padx=10, pady=4)
 
-            tk.Label(col, text=f"LVR-{i+1}", fg=DIM,
+            tk.Label(col, text=f"HEF-{i+1}", fg=DIM,
                      bg=BG_PANEL, font=self.f_small).pack()
 
             lamp = tk.Label(col, text="◉", fg="#330022", bg=BG_PANEL,
@@ -689,7 +689,7 @@ class EscapeRoomApp:
             lamp.pack(pady=(6, 4))
             self.switch_lamps.append(lamp)
 
-            btn = tk.Button(col, text="OFF", width=6,
+            btn = tk.Button(col, text="UIT", width=6,
                             font=self.f_mono,
                             fg=BTN_OFF_FG, bg=BTN_OFF_BG,
                             activebackground=BTN_ON_BG,
@@ -707,7 +707,7 @@ class EscapeRoomApp:
         confirm_frame.pack(pady=20)
 
         self.confirm_btn = tk.Button(confirm_frame,
-                                     text="  ▶  START THE MACHINE  ◀  ",
+                                     text="  ▶  START DE MACHINE  ◀  ",
                                      command=self._check_switches,
                                      font=self.f_medium,
                                      fg=BG, bg=PINK,
@@ -729,7 +729,7 @@ class EscapeRoomApp:
         on = self.switch_states[idx]
         self.switch_lamps[idx].config(fg=PINK if on else "#330022")
         self.switch_btns[idx].config(
-            text="ON " if on else "OFF",
+            text="AAN" if on else "UIT",
             fg=BTN_ON_FG if on else BTN_OFF_FG,
             bg=BTN_ON_BG if on else BTN_OFF_BG,
             relief=tk.SUNKEN if on else tk.RAISED,
@@ -743,7 +743,7 @@ class EscapeRoomApp:
             self._animate_flash(callback=self._show_final_success)
         else:
             self.attempt_count += 1
-            self.attempt_lbl.config(text=f"{self.attempt_count} FAILED")
+            self.attempt_lbl.config(text=f"{self.attempt_count} MISLUKT")
             self.switch_feedback.config(text=SWITCH_FAIL, fg=ORANGE)
             self.audio.play_sfx(AUDIO_WRONG)
             notify_pc2("lights/sequence", {"type": "flash", "color": [255, 0, 0],
@@ -769,23 +769,23 @@ class EscapeRoomApp:
                                    font=tkfont.Font(family="Courier", size=100, weight="bold"))
         self.final_icon.pack(pady=(20, 6))
 
-        tk.Label(center, text="★★★  CANDY MACHINE ACTIVATED!  ★★★",
+        tk.Label(center, text="★★★  SNOEPFABRIEK GEACTIVEERD!  ★★★",
                  fg=YELLOW, bg=BG, font=self.f_giant).pack(pady=(0, 6))
 
-        tk.Label(center, text="ALL LEVERS SET — PRODUCTION LINE RUNNING!",
+        tk.Label(center, text="ALLE HENDELS GOED — PRODUCTIELIJN ACTIEF!",
                  fg=PINK, bg=BG, font=self.f_big).pack(pady=(0, 20))
 
         tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=100, pady=8)
 
         tk.Label(center,
-                 text="Amazing work! You've started Wonky's candy machine!\n"
-                      "The factory is now making sweets. Collect your treat and escape!",
+                 text="Geweldig! Jullie hebben Wonky's snoepfabriek gestart!\n"
+                      "De fabriek maakt nu snoep. Pak jullie traktatie en ontsnapt!",
                  fg=WHITE, bg=BG, font=self.f_medium,
                  justify="center").pack(pady=10)
 
         tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=100, pady=8)
 
-        tk.Label(center, text="[ ESCAPE ROOM COMPLETE — YOU WIN! ]",
+        tk.Label(center, text="[ ESCAPE ROOM VOLTOOID — JULLIE HEBBEN GEWONNEN! ]",
                  fg=DIM, bg=BG, font=self.f_mono).pack(pady=(8, 0))
 
         self._pulse_final()
