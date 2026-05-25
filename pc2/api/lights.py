@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from pc2.api.server import app
 from pc2.config import API_KEY
 from pc2.lighting.controller import controller
+from pc2.lighting.scenes import SCENES
 from pc2.log import log_queue
 
 
@@ -72,6 +73,23 @@ def lights_blackout():
     controller.blackout()
     log_queue.put("API /lights/blackout")
     return {"status": "ok"}
+
+
+class ScenePayload(BaseModel):
+    name:     str
+    duration: float = 0.0   # seconds; 0 = permanent
+    restore:  str   = ""    # scene name to restore after duration expires
+
+
+@app.post("/lights/scene", dependencies=[Depends(require_api_key)])
+def lights_scene(payload: ScenePayload):
+    jobs = SCENES.get(payload.name)
+    if jobs is None:
+        raise HTTPException(status_code=404, detail=f"Unknown scene: {payload.name}")
+    controller.set_scene(list(jobs), payload.duration, payload.restore)
+    suffix = f" for {payload.duration}s → {payload.restore}" if payload.duration else ""
+    log_queue.put(f"API /lights/scene → {payload.name}{suffix}")
+    return {"status": "ok", "scene": payload.name}
 
 
 @app.get("/status")

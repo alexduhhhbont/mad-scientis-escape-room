@@ -106,12 +106,7 @@ class EscapeRoomApp:
         self.root.after(600, self._blink_intro)
 
     def _start_intro_sequence(self):
-        notify_pc2("lights/sequence", {
-            "type": "rainbow_sweep",
-            "intensity": 200,
-            "frequency_hz": 0.5,
-            "duration_sec": 6.0,
-        })
+        notify_pc2("lights/scene", {"name": "intro"})
         self.audio.play_intro()
         self.root.after(6000, self._finish_intro)
 
@@ -119,12 +114,14 @@ class EscapeRoomApp:
         self.stage           = "password"
         self.game_start_time = time.monotonic()
         self.game_running    = True
+        notify_pc2("lights/scene", {"name": "phase1"})
         self._build_password_stage()
         self._start_cursor_blink()
 
     # ── Waiting screen ──────────────────────────────────────────────────────────
 
     def _build_waiting_screen(self):
+        notify_pc2("lights/scene", {"name": "waiting"})
         self._clear_content()
         center = tk.Frame(self.content, bg=BG)
         center.pack(fill=tk.BOTH, expand=True)
@@ -162,22 +159,9 @@ class EscapeRoomApp:
         self.root.after(700, self._blink_waiting)
 
     # ── Idle ambient lights ─────────────────────────────────────────────────────
+    # Scenes handle all ambient lighting — no idle pulse needed.
 
     def _idle_lights(self):
-        if self.stage in ("waiting", "password", "switches"):
-            color = random.choice([
-                [255, 105, 180],
-                [255, 215,   0],
-                [204,  68, 255],
-                [255, 140,   0],
-            ])
-            notify_pc2("lights/sequence", {
-                "type": "pulse",
-                "color": color,
-                "intensity": 70,
-                "frequency_hz": 0.3,
-                "duration_sec": float(IDLE_LIGHT_INTERVAL_MS // 1000 - 1),
-            })
         self.root.after(IDLE_LIGHT_INTERVAL_MS, self._idle_lights)
 
     # ── Shared chrome ───────────────────────────────────────────────────────────
@@ -279,6 +263,7 @@ class EscapeRoomApp:
         if code == PASSWORD.upper():
             self.entry.config(state="disabled")
             self.submit_btn.config(state="disabled")
+            notify_pc2("lights/scene", {"name": "phase1_correct"})
             self._animate_flash(callback=self._transition_to_switches)
         else:
             self.attempt_count += 1
@@ -286,9 +271,8 @@ class EscapeRoomApp:
             self.entry_var.set("")
             self.feedback_lbl.config(text=FAIL_MSG, fg=ORANGE)
             self.audio.play_sfx(AUDIO_WRONG)
-            notify_pc2("lights/sequence", {"type": "flash", "color": [255, 0, 0],
-                                           "intensity": 255, "frequency_hz": 3.0,
-                                           "duration_sec": 3.0})
+            notify_pc2("lights/scene", {"name": "phase1_wrong",
+                                        "duration": 3.0, "restore": "phase1"})
             self._flash_red(3)
 
     # ── Stage 2 — Switches ──────────────────────────────────────────────────────
@@ -297,9 +281,7 @@ class EscapeRoomApp:
         self.stage = "switches"
         self.root.configure(bg=BG)
         self.audio.play_story(AUDIO_STAGE1_STORY)
-        notify_pc2("lights/sequence", {"type": "flash", "color": [255, 140, 0],
-                                       "intensity": 200, "frequency_hz": 1.5,
-                                       "duration_sec": 3.0})
+        notify_pc2("lights/scene", {"name": "phase2"})
         self._build_switch_stage()
 
     def _build_switch_stage(self):
@@ -393,9 +375,8 @@ class EscapeRoomApp:
             self.attempt_lbl.config(text=f"{self.attempt_count} MISLUKT")
             self.switch_feedback.config(text=SWITCH_FAIL, fg=ORANGE)
             self.audio.play_sfx(AUDIO_WRONG)
-            notify_pc2("lights/sequence", {"type": "flash", "color": [255, 0, 0],
-                                           "intensity": 255, "frequency_hz": 3.0,
-                                           "duration_sec": 3.0})
+            notify_pc2("lights/scene", {"name": "phase2_wrong",
+                                        "duration": 3.0, "restore": "phase2"})
             self._flash_red(3)
 
     # ── Stage 3 — Final success ─────────────────────────────────────────────────
@@ -404,9 +385,8 @@ class EscapeRoomApp:
         self._clear_content()
         self.root.configure(bg=BG)
         self.audio.play_story(AUDIO_VICTORY)
-        notify_pc2("lights/sequence", {"type": "pulse", "color": [255, 105, 180],
-                                       "intensity": 255, "frequency_hz": 0.4,
-                                       "duration_sec": 300.0})
+        notify_pc2("lights/scene", {"name": "victory_green",
+                                    "duration": 8.0, "restore": "rainbow"})
 
         center = tk.Frame(self.content, bg=BG)
         center.pack(fill=tk.BOTH, expand=True)
@@ -456,6 +436,7 @@ class EscapeRoomApp:
             self.game_start_time  = None
             self.game_running     = False
             self.audio.restore_theme()
+            notify_pc2("lights/scene", {"name": "waiting"})
             self._build_waiting_screen()
         self.root.after(0, _do)
 

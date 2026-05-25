@@ -21,9 +21,14 @@ _DEFAULT_FIXTURE_DATA = {
         }
     ],
     "instances": [
-        {"id": 1, "name": "Fixture 1", "type_id": "eurolite-rgb", "dmx_address": 1},
-        {"id": 2, "name": "Fixture 2", "type_id": "eurolite-rgb", "dmx_address": 10},
-        {"id": 3, "name": "Fixture 3", "type_id": "eurolite-rgb", "dmx_address": 19},
+        {"id": 1, "name": "Warm 1",    "type_id": "eurolite-rgb", "dmx_address":  1},
+        {"id": 2, "name": "Warm 2",    "type_id": "eurolite-rgb", "dmx_address": 10},
+        {"id": 3, "name": "Warm 3",    "type_id": "eurolite-rgb", "dmx_address": 19},
+        {"id": 4, "name": "Warm 4",    "type_id": "eurolite-rgb", "dmx_address": 28},
+        {"id": 5, "name": "Accent A1", "type_id": "eurolite-rgb", "dmx_address": 37},
+        {"id": 6, "name": "Accent A2", "type_id": "eurolite-rgb", "dmx_address": 46},
+        {"id": 7, "name": "Accent B1", "type_id": "eurolite-rgb", "dmx_address": 55},
+        {"id": 8, "name": "Accent B2", "type_id": "eurolite-rgb", "dmx_address": 64},
     ],
 }
 
