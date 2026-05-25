@@ -79,6 +79,7 @@ class ScenePayload(BaseModel):
     name:     str
     duration: float = 0.0   # seconds; 0 = permanent
     restore:  str   = ""    # scene name to restore after duration expires
+    fade:     float = 0.0   # fade-in duration in seconds; 0 = hard cut
 
 
 @app.post("/lights/scene", dependencies=[Depends(require_api_key)])
@@ -86,7 +87,7 @@ def lights_scene(payload: ScenePayload):
     jobs = SCENES.get(payload.name)
     if jobs is None:
         raise HTTPException(status_code=404, detail=f"Unknown scene: {payload.name}")
-    controller.set_scene(list(jobs), payload.duration, payload.restore)
+    controller.set_scene(list(jobs), payload.duration, payload.restore, payload.fade)
     suffix = f" for {payload.duration}s → {payload.restore}" if payload.duration else ""
     log_queue.put(f"API /lights/scene → {payload.name}{suffix}")
     return {"status": "ok", "scene": payload.name}

@@ -13,18 +13,18 @@ from pc2.lighting.controller import controller
 from pc2.lighting.scenes import SCENES
 from pc2.log import log_queue
 
-# Maps GM action name → (scene_name, duration_sec, restore_scene)
-# duration=0 means permanent; restore="" means no restore.
+# Maps GM action name → (scene_name, duration_sec, restore_scene, fade_sec)
+# duration=0 means permanent; restore="" means no restore; fade=0 means hard cut.
 _SCENE_ACTIONS: dict = {
-    "waiting":        ("waiting",        0,   ""),
-    "intro":          ("intro",          0,   ""),
-    "rainbow":        ("rainbow",        0,   ""),
-    "phase1":         ("phase1",         0,   ""),
-    "phase2":         ("phase2",         0,   ""),
-    "phase1_correct": ("phase1_correct", 0,   ""),
-    "phase1_wrong":   ("phase1_wrong",   3.0, "phase1"),
-    "phase2_wrong":   ("phase2_wrong",   3.0, "phase2"),
-    "victory_green":  ("victory_green",  8.0, "rainbow"),
+    "waiting":        ("waiting",        0,   "",        2.0),
+    "intro":          ("intro",          0,   "",        2.0),
+    "rainbow":        ("rainbow",        0,   "",        2.0),
+    "phase1":         ("phase1",         0,   "",        2.0),
+    "phase2":         ("phase2",         0,   "",        2.0),
+    "phase1_correct": ("phase1_correct", 0,   "",        2.0),
+    "phase1_wrong":   ("phase1_wrong",   3.0, "phase1",  0.0),
+    "phase2_wrong":   ("phase2_wrong",   3.0, "phase2",  0.0),
+    "victory_green":  ("victory_green",  8.0, "rainbow", 2.0),
 }
 
 _GM_HTML = """
@@ -274,9 +274,9 @@ def gm_lights(action: str):
     if entry is None:
         raise HTTPException(status_code=404, detail=f"Unknown light action: {action}")
 
-    scene_name, duration, restore = entry
+    scene_name, duration, restore, fade_sec = entry
     jobs = SCENES.get(scene_name, [])
-    controller.set_scene(list(jobs), duration, restore)
+    controller.set_scene(list(jobs), duration, restore, fade_sec)
     suffix = f" ({duration}s → {restore})" if duration else ""
     log_queue.put(f"GM lights/{action} → scene:{scene_name}{suffix}")
     return {"msg": f"💡 {action}{suffix}"}

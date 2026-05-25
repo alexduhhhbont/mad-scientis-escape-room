@@ -110,7 +110,7 @@ class EscapeRoomApp:
         self.root.after(600, self._blink_intro)
 
     def _start_intro_sequence(self):
-        notify_pc2("lights/scene", {"name": "intro"})
+        notify_pc2("lights/scene", {"name": "intro", "fade": 2.0})
         notify_pc2("audio/intro", {})
         if VLC_OK and INTRO_VIDEO and os.path.exists(INTRO_VIDEO):
             self._play_intro_video()
@@ -153,7 +153,7 @@ class EscapeRoomApp:
         self.stage           = "password"
         self.game_start_time = time.monotonic()
         self.game_running    = True
-        notify_pc2("lights/scene", {"name": "phase1"})
+        notify_pc2("lights/scene", {"name": "phase1", "fade": 2.0})
         self._build_password_stage()
         self._start_cursor_blink()
 
@@ -161,7 +161,7 @@ class EscapeRoomApp:
 
     def _build_waiting_screen(self):
         notify_pc2("audio/waiting", {})
-        notify_pc2("lights/scene", {"name": "waiting"})
+        notify_pc2("lights/scene", {"name": "waiting", "fade": 2.0})
         self._clear_content()
         center = tk.Frame(self.content, bg=BG)
         center.pack(fill=tk.BOTH, expand=True)
@@ -311,7 +311,7 @@ class EscapeRoomApp:
         if code == PASSWORD.upper():
             self.entry.config(state="disabled")
             self.submit_btn.config(state="disabled")
-            notify_pc2("lights/scene", {"name": "phase1_correct"})
+            notify_pc2("lights/scene", {"name": "phase1_correct", "fade": 2.0})
             self._animate_flash(callback=self._transition_to_switches)
         else:
             self.attempt_count += 1
@@ -329,7 +329,7 @@ class EscapeRoomApp:
         self.stage = "switches"
         self.root.configure(bg=BG)
         notify_pc2("audio/story", {})
-        notify_pc2("lights/scene", {"name": "phase2"})
+        notify_pc2("lights/scene", {"name": "phase2", "fade": 2.0})
         self._build_switch_stage()
 
     def _build_switch_stage(self):
@@ -444,7 +444,7 @@ class EscapeRoomApp:
         self.root.configure(bg=BG)
         notify_pc2("audio/victory", {})
         notify_pc2("lights/scene", {"name": "victory_green",
-                                    "duration": 8.0, "restore": "rainbow"})
+                                    "duration": 8.0, "restore": "rainbow", "fade": 2.0})
 
         center = tk.Frame(self.content, bg=BG)
         center.pack(fill=tk.BOTH, expand=True)
@@ -493,9 +493,7 @@ class EscapeRoomApp:
             self.game_elapsed_sec = 0.0
             self.game_start_time  = None
             self.game_running     = False
-            notify_pc2("audio/waiting", {})
-            notify_pc2("lights/scene", {"name": "waiting"})
-            self._build_waiting_screen()
+            self._build_waiting_screen()   # sends audio/waiting + lights/scene internally
         self.root.after(0, _do)
 
     def gm_start(self):

@@ -23,6 +23,11 @@ class LightingController:
         self._scene_expires:  float = 0.0  # 0.0 = permanent
         self._restore_scene:  str   = ""   # scene name to restore on expiry
 
+        # Cross-fade state
+        self._fade_from:     Optional[bytearray] = None
+        self._fade_start:    float               = 0.0
+        self._fade_duration: float               = 0.0
+
     def set_callback(self, fn):
         self._gui_callback = fn
 
@@ -36,13 +41,23 @@ class LightingController:
 
     # ── Scene control ──────────────────────────────────────────────────────────
 
-    def set_scene(self, jobs: list, duration: float = 0.0, restore: str = "") -> None:
-        """Apply a per-fixture scene. duration=0 means permanent."""
+    def set_scene(self, jobs: list, duration: float = 0.0, restore: str = "",
+                  fade_sec: float = 0.0) -> None:
+        """Apply a per-fixture scene. duration=0 means permanent. fade_sec>0 blends in."""
         with self._lock:
+            now = time.monotonic()
+            if fade_sec > 0:
+                self._fade_from     = self._render_current_frame(now)
+                self._fade_start    = now
+                self._fade_duration = fade_sec
+            else:
+                self._fade_from     = None
+                self._fade_start    = 0.0
+                self._fade_duration = 0.0
             self._scene_jobs    = list(jobs)
-            self._scene_expires = (time.monotonic() + duration) if duration > 0 else 0.0
+            self._scene_expires = (now + duration) if duration > 0 else 0.0
             self._restore_scene = restore
-            self.sequence       = None   # cancel any legacy global sequence
+            self.sequence       = None
         self._notify_gui()
 
     def clear_scene(self) -> None:
@@ -120,7 +135,7 @@ class LightingController:
                     self._notify_gui()
 
                 if self._scene_jobs:
-                    return self._render_scene(now)
+                    return self._apply_fade(self._render_scene(now), now)
                 # Fell through (no restore scene) — drop to base frame below
 
             # ── Legacy global sequence ─────────────────────────────────────────
@@ -129,10 +144,10 @@ class LightingController:
                     self.base_frame = self.sequence.prior_frame.copy()
                     self.sequence   = None
                     self._notify_gui()
-                    return self.base_frame.copy()
-                return render_sequence(self.sequence, now)
+                    return self._apply_fade(self.base_frame.copy(), now)
+                return self._apply_fade(render_sequence(self.sequence, now), now)
 
-            return self.base_frame.copy()
+            return self._apply_fade(self.base_frame.copy(), now)
 
     def _render_scene(self, t: float) -> bytearray:
         """Render per-fixture animations into a fresh DMX frame."""
@@ -154,6 +169,33 @@ class LightingController:
                     elif role == "intensity": frame[ch] = max(0, min(255, intensity))
                     elif role == "strobe":    frame[ch] = 0
         return frame
+
+    def _render_current_frame(self, t: float) -> bytearray:
+        """Snapshot the current rendered output (called inside lock, before scene swap)."""
+        if self._scene_jobs:
+            return self._render_scene(t)
+        if self.sequence and t < self.sequence.expires_at:
+            return render_sequence(self.sequence, t)
+        return self.base_frame.copy()
+
+    def _apply_fade(self, target: bytearray, now: float) -> bytearray:
+        """Blend _fade_from → target over the fade duration. Clears fade when done."""
+        if self._fade_from is None:
+            return target
+        elapsed = now - self._fade_start
+        if elapsed >= self._fade_duration:
+            self._fade_from = None
+            return target
+        alpha = elapsed / self._fade_duration
+        return self._blend_frames(self._fade_from, target, alpha)
+
+    @staticmethod
+    def _blend_frames(a: bytearray, b: bytearray, alpha: float) -> bytearray:
+        """Linear interpolation channel-by-channel. alpha=0 → a, alpha=1 → b."""
+        result = bytearray(513)
+        for i in range(513):
+            result[i] = int(a[i] + (b[i] - a[i]) * alpha)
+        return result
 
     # ── Status ─────────────────────────────────────────────────────────────────
 
