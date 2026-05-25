@@ -25,7 +25,7 @@ GM_KEY = "candy-gm"
 
 # ─── Audio ───────────────────────────────────────────
 AUDIO_DIR          = "audio"
-AUDIO_INTRO        = os.path.join(AUDIO_DIR, "intro.wav")
+AUDIO_INTRO        = os.path.join(AUDIO_DIR, "intro.mp3")
 AUDIO_MAIN_THEME   = os.path.join(AUDIO_DIR, "theme.mp3")
 AUDIO_WRONG        = os.path.join(AUDIO_DIR, "wrong.wav")
 AUDIO_STAGE1_STORY = os.path.join(AUDIO_DIR, "stage1_story.wav")

@@ -254,22 +254,26 @@ class EscapeRoomApp:
 
     def _build_password_stage(self):
         self._clear_content()
-        self._build_left_panel(self.content)
 
-        center = tk.Frame(self.content, bg=BG)
-        center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Outer frame fills all space; inner frame is packed with expand=True (no fill)
+        # so tkinter centers it both horizontally and vertically.
+        outer = tk.Frame(self.content, bg=BG)
+        outer.pack(fill=tk.BOTH, expand=True)
 
-        tk.Label(center, text="🍭", fg=PINK, bg=BG,
-                 font=tkfont.Font(family="Courier", size=90)).pack(pady=(10, 0))
+        inner = tk.Frame(outer, bg=BG)
+        inner.pack(expand=True)
 
-        self.lock_icon = tk.Label(center, text="🔒  FABRIEK VERGRENDELD",
+        tk.Label(inner, text="🍭", fg=PINK, bg=BG,
+                 font=tkfont.Font(family="Courier", size=90)).pack(pady=(0, 0))
+
+        self.lock_icon = tk.Label(inner, text="🔒  FABRIEK VERGRENDELD",
                                   fg=PINK, bg=BG, font=self.f_huge)
-        self.lock_icon.pack(pady=(0, 4))
+        self.lock_icon.pack(pady=(0, 6))
 
-        tk.Label(center, text="Voer de geheime code in om de snoepfabriek te starten!",
-                 fg=DIM, bg=BG, font=self.f_medium).pack(pady=(0, 30))
+        tk.Label(inner, text="Voer de geheime code in om de snoepfabriek te starten!",
+                 fg=DIM, bg=BG, font=self.f_medium).pack(pady=(0, 40))
 
-        entry_frame = tk.Frame(center, bg=BG)
+        entry_frame = tk.Frame(inner, bg=BG)
         entry_frame.pack()
 
         tk.Label(entry_frame, text="CODE ► ", fg=PURPLE,
@@ -293,9 +297,13 @@ class EscapeRoomApp:
                                     relief=tk.FLAT, bd=0, padx=12, pady=8, cursor="hand2")
         self.submit_btn.pack(side=tk.LEFT, padx=(16, 0))
 
-        self.feedback_lbl = tk.Label(center, text="", fg=ORANGE,
+        self.feedback_lbl = tk.Label(inner, text="", fg=ORANGE,
                                      bg=BG, font=self.f_medium)
         self.feedback_lbl.pack(pady=(16, 0))
+
+        self.attempt_lbl = tk.Label(inner, text="", fg=DIM,
+                                    bg=BG, font=self.f_small)
+        self.attempt_lbl.pack(pady=(4, 0))
 
     def _check_password(self, event=None):
         code = self.entry_var.get().strip().upper()
@@ -306,7 +314,7 @@ class EscapeRoomApp:
             self._animate_flash(callback=self._transition_to_switches)
         else:
             self.attempt_count += 1
-            self.attempt_lbl.config(text=f"{self.attempt_count} MISLUKT")
+            self.attempt_lbl.config(text=f"[ {self.attempt_count}× VERKEERDE CODE ]")
             self.entry_var.set("")
             self.feedback_lbl.config(text=FAIL_MSG, fg=ORANGE)
             notify_pc2("audio/wrong", {})
@@ -327,51 +335,61 @@ class EscapeRoomApp:
         self._clear_content()
         self._build_left_panel(self.content)
 
-        center = tk.Frame(self.content, bg=BG)
-        center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        outer = tk.Frame(self.content, bg=BG)
+        outer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        tk.Label(center, text="🔓  FASE 1 VOLTOOID — GOED GEDAAN!",
-                 fg=YELLOW, bg=BG, font=self.f_huge).pack(pady=(8, 2))
+        inner = tk.Frame(outer, bg=BG)
+        inner.pack(expand=True)
 
-        tk.Label(center,
+        tk.Label(inner, text="🔓  FASE 1 VOLTOOID — GOED GEDAAN!",
+                 fg=YELLOW, bg=BG, font=self.f_huge).pack(pady=(0, 2))
+
+        tk.Label(inner,
                  text="Zet nu de juiste hendels om de snoepproductielijn te starten!",
                  fg=DIM, bg=BG, font=self.f_medium).pack(pady=(0, 18))
 
-        switches_frame = tk.Frame(center, bg=BG)
+        switches_frame = tk.Frame(inner, bg=BG)
         switches_frame.pack(pady=4)
 
         self.switch_btns  = []
         self.switch_lamps = []
 
         for i in range(6):
-            col = tk.Frame(switches_frame, bg=BG_PANEL, bd=1,
-                           highlightbackground=BORDER, highlightthickness=1,
-                           padx=18, pady=14)
-            col.grid(row=0, column=i, padx=10, pady=4)
+            row_idx = i // 3
+            col_idx = i % 3
 
-            tk.Label(col, text=f"HEF-{i+1}", fg=DIM,
-                     bg=BG_PANEL, font=self.f_small).pack()
+            card = tk.Frame(switches_frame, bg=BG_PANEL,
+                            highlightbackground=BORDER, highlightthickness=2,
+                            padx=26, pady=18)
+            card.grid(row=row_idx, column=col_idx, padx=14, pady=10)
 
-            lamp = tk.Label(col, text="◉", fg="#330022", bg=BG_PANEL,
-                            font=tkfont.Font(family="Courier", size=26))
-            lamp.pack(pady=(6, 4))
+            # Switch number tag
+            tk.Label(card, text=f"HENDEL  {i + 1}", fg=PURPLE,
+                     bg=BG_PANEL, font=self.f_mono).pack()
+
+            # Lamp indicator
+            lamp = tk.Label(card, text="●", fg="#330022", bg=BG_PANEL,
+                            font=tkfont.Font(family="Courier", size=42, weight="bold"))
+            lamp.pack(pady=(8, 6))
             self.switch_lamps.append(lamp)
 
-            btn = tk.Button(col, text="UIT", width=6,
+            # Toggle button
+            btn = tk.Button(card, text="◼  UIT", width=9,
                             font=self.f_mono,
                             fg=BTN_OFF_FG, bg=BTN_OFF_BG,
                             activebackground=BTN_ON_BG,
                             relief=tk.RAISED, bd=3,
                             cursor="hand2",
                             command=lambda idx=i: self._toggle_switch(idx))
-            btn.pack(pady=(2, 6))
+            btn.pack(pady=(0, 10), ipady=5)
             self.switch_btns.append(btn)
 
-            tk.Label(col, text=SWITCH_LABELS[i], fg=DIM,
-                     bg=BG_PANEL, font=self.f_small,
-                     wraplength=90, justify="center").pack()
+            # Label — large, high contrast
+            tk.Label(card, text=SWITCH_LABELS[i], fg=YELLOW,
+                     bg=BG_PANEL, font=self.f_medium,
+                     wraplength=160, justify="center").pack()
 
-        confirm_frame = tk.Frame(center, bg=BG)
+        confirm_frame = tk.Frame(inner, bg=BG)
         confirm_frame.pack(pady=20)
 
         self.confirm_btn = tk.Button(confirm_frame,
@@ -386,7 +404,7 @@ class EscapeRoomApp:
                                      cursor="hand2")
         self.confirm_btn.pack()
 
-        self.switch_feedback = tk.Label(center, text="",
+        self.switch_feedback = tk.Label(inner, text="",
                                         fg=ORANGE, bg=BG, font=self.f_medium)
         self.switch_feedback.pack(pady=(10, 0))
 
@@ -397,7 +415,7 @@ class EscapeRoomApp:
         on = self.switch_states[idx]
         self.switch_lamps[idx].config(fg=PINK if on else "#330022")
         self.switch_btns[idx].config(
-            text="AAN" if on else "UIT",
+            text="◆  AAN" if on else "◼  UIT",
             fg=BTN_ON_FG if on else BTN_OFF_FG,
             bg=BTN_ON_BG if on else BTN_OFF_BG,
             relief=tk.SUNKEN if on else tk.RAISED,
