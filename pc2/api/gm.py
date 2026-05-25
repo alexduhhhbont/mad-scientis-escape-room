@@ -4,7 +4,11 @@ from fastapi import Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
 from pc2.api.server import app
-from pc2.config import GM_KEY, PC1_URL, PC1_API_KEY, API_PORT
+from pc2.audio import audio_manager
+from pc2.config import (
+    GM_KEY, PC1_URL, PC1_API_KEY, API_PORT,
+    AUDIO_WRONG, AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
+)
 from pc2.lighting.controller import controller
 from pc2.lighting.scenes import SCENES
 from pc2.log import log_queue
@@ -241,9 +245,21 @@ def gm_status():
 
 @app.post("/gm/ctrl/audio/{action}", dependencies=[Depends(_gm_auth)])
 def gm_audio(action: str):
-    result = _call_pc1("POST", f"game/audio/{action}")
-    log_queue.put(f"GM audio/{action} → {result}")
-    return {"msg": f"▶ audio/{action}", **result}
+    actions = {
+        "intro":   audio_manager.play_intro,
+        "theme":   audio_manager.start_main_theme,
+        "wrong":   lambda: audio_manager.play_sfx(AUDIO_WRONG),
+        "story":   lambda: audio_manager.play_story(AUDIO_STAGE1_STORY),
+        "victory": lambda: audio_manager.play_story(AUDIO_VICTORY),
+        "hint":    lambda: audio_manager.play_sfx(AUDIO_HINT),
+        "stop":    audio_manager.stop_all,
+        "restore": audio_manager.restore_theme,
+    }
+    if action not in actions:
+        raise HTTPException(status_code=404, detail=f"Unknown audio action: {action}")
+    actions[action]()
+    log_queue.put(f"GM audio/{action}")
+    return {"msg": f"▶ audio/{action}"}
 
 
 @app.post("/gm/ctrl/lights/{action}", dependencies=[Depends(_gm_auth)])

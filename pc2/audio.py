@@ -8,7 +8,7 @@ except ImportError:
     PYGAME_OK = False
     print("[Audio] pygame not installed — audio disabled.  Run: pip install pygame")
 
-from pc1.config import (
+from pc2.config import (
     AUDIO_INTRO, AUDIO_MAIN_THEME, AUDIO_WRONG,
     AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
     THEME_VOLUME, DUCK_VOLUME, SFX_VOLUME,
@@ -46,7 +46,6 @@ class AudioManager:
             pygame.mixer.music.set_volume(THEME_VOLUME)
 
     def play_intro(self):
-        """Play intro once, then automatically start the looping theme."""
         if not self._ok:
             return
         snd = self._load(AUDIO_INTRO)
@@ -71,7 +70,6 @@ class AudioManager:
             print(f"[Audio] theme error: {e}")
 
     def play_sfx(self, path):
-        """Short SFX — ducks theme for its duration then restores."""
         snd = self._load(path)
         if not snd:
             return
@@ -82,7 +80,6 @@ class AudioManager:
             self._sfx_ch.play(snd)
 
     def play_story(self, path):
-        """Longer story / victory clip — ducks theme while it plays."""
         snd = self._load(path)
         if not snd:
             return
@@ -105,3 +102,6 @@ class AudioManager:
             self.start_main_theme()
         else:
             pygame.mixer.music.set_volume(THEME_VOLUME)
+
+
+audio_manager = AudioManager()

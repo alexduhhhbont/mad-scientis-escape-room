@@ -3,4 +3,5 @@
 fastapi
 uvicorn[standard]
 requests
+pygame
 qrcode[pil]

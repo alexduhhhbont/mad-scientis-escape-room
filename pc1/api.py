@@ -6,11 +6,7 @@ import requests
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException
 
-from pc1.config import (
-    PC1_API_PORT, PC1_API_KEY,
-    PC2_URL, PC2_API_KEY,
-    AUDIO_WRONG, AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
-)
+from pc1.config import PC1_API_PORT, PC1_API_KEY, PC2_URL, PC2_API_KEY
 
 if TYPE_CHECKING:
     from pc1.app import EscapeRoomApp
@@ -94,26 +90,6 @@ def api_game_victory():
         _game_app.gm_trigger_victory()
     return {"status": "ok"}
 
-
-@pc1_api.post("/game/audio/{action}", dependencies=[Depends(_require_key)])
-def api_audio(action: str):
-    if not _game_app:
-        raise HTTPException(status_code=503, detail="App not ready")
-    a = _game_app.audio
-    actions = {
-        "intro":   a.play_intro,
-        "theme":   a.start_main_theme,
-        "wrong":   lambda: a.play_sfx(AUDIO_WRONG),
-        "story":   lambda: a.play_story(AUDIO_STAGE1_STORY),
-        "victory": lambda: a.play_story(AUDIO_VICTORY),
-        "hint":    lambda: a.play_sfx(AUDIO_HINT),
-        "stop":    a.stop_all,
-        "restore": a.restore_theme,
-    }
-    if action not in actions:
-        raise HTTPException(status_code=404, detail="Unknown action")
-    actions[action]()
-    return {"status": "ok", "action": action}
 
 
 def run_api_server() -> None:

@@ -1,5 +1,3 @@
-import os
-
 # ─── Game ───────────────────────────────────────────
 PASSWORD        = "CHAOS42"
 ADMIN_COMBO     = "<Control-Shift-Alt-q>"
@@ -34,19 +32,6 @@ PC2_API_KEY = "change-me-to-something-random"
 # ─── PC1 Game Control API ───────────────────────────
 PC1_API_PORT = 8001
 PC1_API_KEY  = "change-me-to-something-random"
-
-# ─── Audio ──────────────────────────────────────────
-AUDIO_DIR          = "audio"
-AUDIO_INTRO        = os.path.join(AUDIO_DIR, "intro.wav")
-AUDIO_MAIN_THEME   = os.path.join(AUDIO_DIR, "theme.mp3")
-AUDIO_WRONG        = os.path.join(AUDIO_DIR, "wrong.wav")
-AUDIO_STAGE1_STORY = os.path.join(AUDIO_DIR, "stage1_story.wav")
-AUDIO_VICTORY      = os.path.join(AUDIO_DIR, "victory.wav")
-AUDIO_HINT         = os.path.join(AUDIO_DIR, "hint.wav")
-
-THEME_VOLUME = 0.40
-DUCK_VOLUME  = 0.10
-SFX_VOLUME   = 0.90
 
 # ─── Idle lights ────────────────────────────────────
 IDLE_LIGHT_INTERVAL_MS = 12_000

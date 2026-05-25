@@ -3,12 +3,10 @@ import time
 import tkinter as tk
 import tkinter.font as tkfont
 
-from pc1.audio import AudioManager
 from pc1.config import (
     TITLE, ADMIN_COMBO,
     PASSWORD, SWITCH_SOLUTION, SWITCH_LABELS, FLAVOR_LINES,
     FAIL_MSG, SWITCH_FAIL,
-    AUDIO_WRONG, AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
     IDLE_LIGHT_INTERVAL_MS,
     BG, BG_PANEL, BG_HEADER, PINK, YELLOW, PURPLE, ORANGE, WHITE, DIM, BORDER,
     BTN_OFF_BG, BTN_OFF_FG, BTN_ON_BG, BTN_ON_FG,
@@ -18,9 +16,8 @@ from pc1.widgets import GlitchLabel, ScanlineCanvas
 
 
 class EscapeRoomApp:
-    def __init__(self, root: tk.Tk, audio: AudioManager):
+    def __init__(self, root: tk.Tk):
         self.root  = root
-        self.audio = audio
         self.root.title(TITLE)
         self.root.configure(bg=BG)
 
@@ -107,7 +104,7 @@ class EscapeRoomApp:
 
     def _start_intro_sequence(self):
         notify_pc2("lights/scene", {"name": "intro"})
-        self.audio.play_intro()
+        notify_pc2("audio/intro", {})
         self.root.after(6000, self._finish_intro)
 
     def _finish_intro(self):
@@ -270,7 +267,7 @@ class EscapeRoomApp:
             self.attempt_lbl.config(text=f"{self.attempt_count} MISLUKT")
             self.entry_var.set("")
             self.feedback_lbl.config(text=FAIL_MSG, fg=ORANGE)
-            self.audio.play_sfx(AUDIO_WRONG)
+            notify_pc2("audio/wrong", {})
             notify_pc2("lights/scene", {"name": "phase1_wrong",
                                         "duration": 3.0, "restore": "phase1"})
             self._flash_red(3)
@@ -280,7 +277,7 @@ class EscapeRoomApp:
     def _transition_to_switches(self):
         self.stage = "switches"
         self.root.configure(bg=BG)
-        self.audio.play_story(AUDIO_STAGE1_STORY)
+        notify_pc2("audio/story", {})
         notify_pc2("lights/scene", {"name": "phase2"})
         self._build_switch_stage()
 
@@ -374,7 +371,7 @@ class EscapeRoomApp:
             self.attempt_count += 1
             self.attempt_lbl.config(text=f"{self.attempt_count} MISLUKT")
             self.switch_feedback.config(text=SWITCH_FAIL, fg=ORANGE)
-            self.audio.play_sfx(AUDIO_WRONG)
+            notify_pc2("audio/wrong", {})
             notify_pc2("lights/scene", {"name": "phase2_wrong",
                                         "duration": 3.0, "restore": "phase2"})
             self._flash_red(3)
@@ -384,7 +381,7 @@ class EscapeRoomApp:
     def _show_final_success(self):
         self._clear_content()
         self.root.configure(bg=BG)
-        self.audio.play_story(AUDIO_VICTORY)
+        notify_pc2("audio/victory", {})
         notify_pc2("lights/scene", {"name": "victory_green",
                                     "duration": 8.0, "restore": "rainbow"})
 
@@ -435,7 +432,7 @@ class EscapeRoomApp:
             self.game_elapsed_sec = 0.0
             self.game_start_time  = None
             self.game_running     = False
-            self.audio.restore_theme()
+            notify_pc2("audio/restore", {})
             notify_pc2("lights/scene", {"name": "waiting"})
             self._build_waiting_screen()
         self.root.after(0, _do)
@@ -472,7 +469,7 @@ class EscapeRoomApp:
         self.root.after(0, _do)
 
     def gm_play_hint(self):
-        self.audio.play_sfx(AUDIO_HINT)
+        notify_pc2("audio/hint", {})
 
     # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -528,7 +525,7 @@ class EscapeRoomApp:
         self.root.after(160, lambda: self._flash_red(times - 1))
 
     def _admin_quit(self, event=None):
-        self.audio.stop_all()
+        notify_pc2("audio/stop", {})
         notify_pc2("lights/blackout", {})
         self.root.destroy()
 
@@ -537,7 +534,7 @@ class EscapeRoomApp:
         if self._f12_timer:
             self.root.after_cancel(self._f12_timer)
         if self._f12_presses >= 3:
-            self.audio.stop_all()
+            notify_pc2("audio/stop", {})
             notify_pc2("lights/blackout", {})
             self.root.destroy()
         else:
