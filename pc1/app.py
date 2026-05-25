@@ -312,7 +312,7 @@ class EscapeRoomApp:
             self.entry.config(state="disabled")
             self.submit_btn.config(state="disabled")
             notify_pc2("lights/scene", {"name": "phase1_correct", "fade": 2.0})
-            self._animate_flash(callback=self._transition_to_switches)
+            self._animate_flash(callback=self._build_boot_screen)
         else:
             self.attempt_count += 1
             self.attempt_lbl.config(text=f"[ {self.attempt_count}× VERKEERDE CODE ]")
@@ -322,6 +322,72 @@ class EscapeRoomApp:
             notify_pc2("lights/scene", {"name": "phase1_wrong",
                                         "duration": 3.0, "restore": "phase1"})
             self._flash_red(3)
+
+    # ── Boot animation (between password and switch stage) ──────────────────────
+
+    def _build_boot_screen(self):
+        self.stage = "booting"
+        self._clear_content()
+
+        outer = tk.Frame(self.content, bg=BG)
+        outer.pack(fill=tk.BOTH, expand=True)
+
+        term = tk.Frame(outer, bg="#060616",
+                        highlightbackground=BORDER, highlightthickness=2)
+        term.pack(expand=True, padx=50, pady=20, fill=tk.BOTH)
+
+        hdr = tk.Frame(term, bg=BG_HEADER)
+        hdr.pack(fill=tk.X)
+        tk.Label(hdr, text="▌ WONKY INDUSTRIES — FABRIEK BESTURINGSSYSTEEM v2.0",
+                 fg=YELLOW, bg=BG_HEADER, font=self.f_mono,
+                 anchor="w").pack(side=tk.LEFT, padx=14, pady=8)
+        tk.Label(hdr, text="● LIVE",
+                 fg="#00cc44", bg=BG_HEADER, font=self.f_small).pack(side=tk.RIGHT, padx=14)
+        tk.Frame(term, bg=BORDER, height=1).pack(fill=tk.X)
+
+        log = tk.Frame(term, bg="#060616")
+        log.pack(fill=tk.BOTH, expand=True, padx=20, pady=14)
+
+        GREEN = "#00cc44"
+        boot_lines = [
+            (400,  "TOEGANG VERLEEND — WELKOM, FABRIEKSDIRECTEUR",                 YELLOW),
+            (600,  "[SYSTEEM]  Opstart sequentie geïnitialiseerd...",              PINK),
+            (700,  "[  OK  ]  Suikerpomp module geladen",                          GREEN),
+            (500,  "[  OK  ]  Chocoladevat controller verbonden",                  GREEN),
+            (600,  "[  OK  ]  Gummivorm matrijs gekalibreerd",                     GREEN),
+            (500,  "[  OK  ]  Karamelmixer koppeling actief",                      GREEN),
+            (800,  "[ WARN ]  Hagelslag dosering afwijking — herstelmodus actief", ORANGE),
+            (600,  "[  OK  ]  Verpakkingslijn geïnitialiseerd",                    GREEN),
+            (900,  "[SYSTEEM]  1.247.832 snoeprecepten gesynchroniseerd",          PINK),
+            (500,  "[  OK  ]  Kwaliteitscontrole sensoren actief",                 GREEN),
+            (700,  "[SYSTEEM]  Hendel besturing initialiseren...",                  PINK),
+            (600,  "[  OK  ]  6 productiehendels gedetecteerd",                    GREEN),
+            (500,  "[  OK  ]  Noodstop circuit getest",                            GREEN),
+            (800,  "★  ALLE SYSTEMEN OPERATIONEEL — HANDMATIGE BEDIENING VEREIST  ★", YELLOW),
+        ]
+
+        def schedule(idx, elapsed):
+            if idx >= len(boot_lines):
+                self.root.after(elapsed + 1200, self._boot_complete)
+                return
+            delay, text, color = boot_lines[idx]
+            t = elapsed + delay
+
+            def show(text=text, color=color):
+                if self.stage != "booting":
+                    return
+                tk.Label(log, text=text, fg=color, bg="#060616",
+                         font=self.f_mono, anchor="w").pack(fill=tk.X, pady=2)
+
+            self.root.after(t, show)
+            schedule(idx + 1, t)
+
+        schedule(0, 0)
+
+    def _boot_complete(self):
+        if self.stage != "booting":
+            return
+        self._transition_to_switches()
 
     # ── Stage 2 — Switches ──────────────────────────────────────────────────────
 
