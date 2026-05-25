@@ -33,6 +33,9 @@ PC2_API_KEY = "change-me-to-something-random"
 PC1_API_PORT = 8001
 PC1_API_KEY  = "change-me-to-something-random"
 
+# ─── Intro video ────────────────────────────────────
+INTRO_VIDEO = "audio/intro.mp4"   # relative to cwd; set to "" to always use animated fallback
+
 # ─── Idle lights ────────────────────────────────────
 IDLE_LIGHT_INTERVAL_MS = 12_000
 

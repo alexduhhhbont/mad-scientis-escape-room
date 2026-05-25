@@ -1,13 +1,20 @@
+import os
 import random
 import time
 import tkinter as tk
 import tkinter.font as tkfont
 
+try:
+    import vlc as _vlc
+    VLC_OK = True
+except ImportError:
+    VLC_OK = False
+
 from pc1.config import (
     TITLE, ADMIN_COMBO,
     PASSWORD, SWITCH_SOLUTION, SWITCH_LABELS, FLAVOR_LINES,
     FAIL_MSG, SWITCH_FAIL,
-    IDLE_LIGHT_INTERVAL_MS,
+    INTRO_VIDEO, IDLE_LIGHT_INTERVAL_MS,
     BG, BG_PANEL, BG_HEADER, PINK, YELLOW, PURPLE, ORANGE, WHITE, DIM, BORDER,
     BTN_OFF_BG, BTN_OFF_FG, BTN_ON_BG, BTN_ON_FG,
 )
@@ -105,7 +112,42 @@ class EscapeRoomApp:
     def _start_intro_sequence(self):
         notify_pc2("lights/scene", {"name": "intro"})
         notify_pc2("audio/intro", {})
-        self.root.after(6000, self._finish_intro)
+        if VLC_OK and INTRO_VIDEO and os.path.exists(INTRO_VIDEO):
+            self._play_intro_video()
+        else:
+            self.root.after(6000, self._finish_intro)
+
+    def _play_intro_video(self):
+        self._video_frame = tk.Frame(self.root, bg="black")
+        self._video_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self._video_frame.lift()
+        self.root.update_idletasks()   # flush geometry so winfo_id() is valid
+
+        self._vlc_instance = _vlc.Instance("--no-audio")
+        self._vlc_player   = self._vlc_instance.media_player_new()
+        self._vlc_player.set_xwindow(self._video_frame.winfo_id())  # Linux
+        # Windows: self._vlc_player.set_hwnd(self._video_frame.winfo_id())
+
+        media = self._vlc_instance.media_new(INTRO_VIDEO)
+        self._vlc_player.set_media(media)
+        self._vlc_player.event_manager().event_attach(
+            _vlc.EventType.MediaPlayerEndReached, self._on_video_ended
+        )
+        self._vlc_player.play()
+
+    def _on_video_ended(self, event=None):
+        # VLC calls this from its own thread — bounce to main thread
+        self.root.after(0, self._teardown_video)
+
+    def _teardown_video(self):
+        try:
+            self._vlc_player.stop()
+            self._vlc_player.release()
+            self._vlc_instance.release()
+            self._video_frame.destroy()
+        except Exception:
+            pass
+        self._finish_intro()
 
     def _finish_intro(self):
         self.stage           = "password"
