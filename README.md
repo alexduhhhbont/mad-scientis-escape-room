@@ -4,14 +4,38 @@ Two machines work together to run the room. **PC 1** runs the player-facing term
 
 ```
                         ┌─────────────────────────────────┐
-  GM phone              │  PC 2 — controller.py           │
+  GM phone              │  PC 2 — python -m pc2           │
   browser  ──HTTP──▶   │  FastAPI :8000                  │
                         │  • /gm  GM phone panel          │──▶ Enttec Open DMX USB
                         │  • /lights/*  PC1 events        │         │
-                        │  • /gm/ctrl/game/*  proxied ──────▶  PC 1 — escape_room.py
+                        │  • /gm/ctrl/game/*  proxied ──────▶  PC 1 — python -m pc1
                         └─────────────────────────────────┘    FastAPI :8001
                                                                  • /game/*  game control
                                                                  • /game/audio/*  audio
+```
+
+---
+
+## Project structure
+
+```
+pc1/                    Player terminal (run on PC 1)
+  __main__.py           Entry point
+  config.py             All constants — passwords, IPs, colours, audio paths
+  audio.py              AudioManager (pygame)
+  widgets.py            GlitchLabel, ScanlineCanvas
+  api.py                FastAPI /game/* and /audio/* routes
+  app.py                EscapeRoomApp — full game UI and stage logic
+
+pc2/                    DMX controller (run on PC 2)
+  __main__.py           Entry point
+  config.py             All constants — API keys, ports, FTDI params
+  log.py                Shared log queue (GUI ↔ API thread)
+  fixtures/             FixtureLibrary, dataclasses
+  lighting/             LightingController, SequenceJob
+  dmx/                  libftdi1 bindings, DMX streaming loop
+  api/                  FastAPI routes (lights, GM panel)
+  gui/                  ControllerApp, fixture manager dialogs
 ```
 
 ---
@@ -42,13 +66,13 @@ Place audio files in the `audio/` folder:
 | File | When it plays |
 |------|---------------|
 | `audio/intro.wav` | Once at startup; main theme auto-starts after |
-| `audio/main_theme.wav` | Looping background music throughout the game |
+| `audio/theme.mp3` | Looping background music throughout the game |
 | `audio/wrong.wav` | Wrong password or wrong switches (plays over ducked theme) |
 | `audio/stage1_story.wav` | Story narration after password is accepted |
 | `audio/victory.wav` | Final win fanfare |
 | `audio/hint.wav` | Optional — triggered from the GM panel |
 
-### Configuration (`escape_room.py`)
+### Configuration (`pc1/config.py`)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -65,7 +89,7 @@ Place audio files in the `audio/` folder:
 ### Run
 
 ```bash
-python3 escape_room.py
+python -m pc1
 ```
 
 Press **Ctrl+Shift+Alt+Q** or **F12 three times** to exit.
@@ -74,25 +98,23 @@ Press **Ctrl+Shift+Alt+Q** or **F12 three times** to exit.
 
 ## GM Panel (Phone Controller)
 
-With PC 2 running, open this URL on any phone or tablet on the same WiFi:
+With PC 2 running, a QR code and the exact URL are shown in the controller window. Scan the QR code or open the URL on any phone or tablet on the same WiFi:
 
 ```
 http://<PC2-IP>:8000/gm?key=candy-gm
 ```
 
-PC 2 prints the exact URL in its log window on startup.
-
 The panel provides:
 
 | Section | Buttons |
 |---------|---------|
+| **Game Control** | Start, Pause/Resume, Force Win, Reset, Hint, Skip to Stage 2 |
 | **Audio** | Intro, Theme, Wrong SFX, Story, Victory, Hint, Restore, Stop All |
 | **Lights** | Rainbow, Suspense, Warning, Celebrate, Blackout |
-| **Game Control** | Play Hint, Skip to Stage 2, Force Win, Reset Game |
 
 Audio and game commands are proxied by PC 2 through to PC 1. Lights are handled directly by PC 2. The status bar refreshes every 3 seconds showing current stage, fail count, and DMX state.
 
-> **Security:** set `GM_KEY` in `controller.py` to something private before your event.
+> **Security:** set `GM_KEY` in `pc2/config.py` to something private before your event.
 
 ---
 
@@ -126,9 +148,9 @@ sudo cp 99-enttec-opendmx.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-Unplug and replug the Enttec adapter. After this, `controller.py` runs as a normal user.
+Unplug and replug the Enttec adapter. After this, `python -m pc2` runs as a normal user.
 
-### Configuration (`controller.py`)
+### Configuration (`pc2/config.py`)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -153,10 +175,10 @@ Unplug and replug the Enttec adapter. After this, `controller.py` runs as a norm
 ### Run
 
 ```bash
-python3 controller.py
+python -m pc2
 ```
 
-The GM panel shows **DMX: ONLINE** when the adapter is detected.
+The controller window shows **DMX: ONLINE** when the adapter is detected, and displays the LAN IP and a QR code to open the GM panel on your phone.
 
 ### API endpoints
 

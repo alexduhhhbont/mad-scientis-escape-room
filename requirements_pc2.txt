@@ -3,3 +3,4 @@
 fastapi
 uvicorn[standard]
 requests
+qrcode[pil]

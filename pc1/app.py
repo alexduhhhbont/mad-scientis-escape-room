@@ -1,371 +1,24 @@
-#!/usr/bin/env python3
-"""
-WONKY'S CANDY FACTORY CONTROL TERMINAL  —  PC 1
-=================================================
-Full-screen locked terminal interface.
-
-STAGE 1 — Password lock  →  Password: CHAOS42
-STAGE 2 — Switch puzzle  →  Switches 1, 2, 5 ON
-
-Admin kill:  Ctrl+Shift+Alt+Q
-F12 × 3:     emergency quit
-
-Dependencies:
-  pip install -r requirements_pc1.txt
-
-Audio files — place in ./audio/ :
-  intro.wav         played once at startup, then theme auto-starts
-  main_theme.wav    looping background music
-  wrong.wav         wrong-answer sound effect (plays over theme)
-  stage1_story.wav  story narration after password accepted
-  victory.wav       final win fanfare
-  hint.wav          optional clip triggered from the GM panel
-"""
-
-import os
-import threading
-import tkinter as tk
-import tkinter.font as tkfont
 import random
 import time
+import tkinter as tk
+import tkinter.font as tkfont
 
-import requests
-import uvicorn
-from fastapi import Depends, FastAPI, Header, HTTPException
-
-try:
-    import pygame
-    PYGAME_OK = True
-except ImportError:
-    PYGAME_OK = False
-    print("[Audio] pygame not installed — audio disabled.  Run: pip install pygame")
-
-# ─────────────── GAME CONFIGURATION ───────────────
-PASSWORD        = "CHAOS42"
-ADMIN_COMBO     = "<Control-Shift-Alt-q>"
-TITLE           = "WONKY'S SNOEPFABRIEK CONTROLESYSTEEM v1.0"
-
-SWITCH_SOLUTION = [True, True, False, False, True, False]
-
-SWITCH_LABELS = [
-    "SUIKERPOMP",
-    "CHOCOLADEVAT",
-    "GUMMIVORM",
-    "KARAMELMIXER",
-    "HAGELSLAG",
-    "VERPAKKING",
-]
-
-FLAVOR_LINES = [
-    "SUIKERNIVEAU: MAXIMAAL",
-    "GUMMIBEREN: KOKEN",
-    "CHOCOLADESTROOM: ACTIEF",
-    "LOLLY BATCH: GEREED",
-    "HAGELSLAG TELLING: 1.000.000",
-]
-
-FAIL_MSG    = "⚠  VERKEERDE CODE — DE MACHINE IS IN DE WAR!"
-SWITCH_FAIL = "⚠  VERKEERDE HENDELS — CHOCOLADE OVERSTROMING!"
-
-# ─────────────── PC2 / LIGHTS ───────────────
-PC2_URL     = "http://192.168.178.84:8000"
-PC2_API_KEY = "change-me-to-something-random"
-
-# ─────────────── PC1 GAME CONTROL API ───────────────
-# PC 2 calls this to control the game and audio remotely.
-# Must match PC1_API_KEY in controller.py on PC 2.
-PC1_API_PORT = 8001
-PC1_API_KEY  = "change-me-to-something-random"
-
-# ─────────────── AUDIO ───────────────
-AUDIO_DIR          = "audio"
-AUDIO_INTRO        = os.path.join(AUDIO_DIR, "intro.wav")
-AUDIO_MAIN_THEME   = os.path.join(AUDIO_DIR, "theme.mp3")
-AUDIO_WRONG        = os.path.join(AUDIO_DIR, "wrong.wav")
-AUDIO_STAGE1_STORY = os.path.join(AUDIO_DIR, "stage1_story.wav")
-AUDIO_VICTORY      = os.path.join(AUDIO_DIR, "victory.wav")
-AUDIO_HINT         = os.path.join(AUDIO_DIR, "hint.wav")
-
-THEME_VOLUME = 0.40   # 0.0–1.0
-DUCK_VOLUME  = 0.10   # theme volume while an SFX is playing
-SFX_VOLUME   = 0.90
-
-# ─────────────── IDLE LIGHTS ───────────────
-IDLE_LIGHT_INTERVAL_MS = 12_000
-
-# ─────────────── COLOUR PALETTE ───────────────
-BG         = "#1a0030"
-BG_PANEL   = "#2a0045"
-BG_HEADER  = "#3d0060"
-PINK       = "#ff69b4"
-YELLOW     = "#ffd700"
-PURPLE     = "#cc44ff"
-ORANGE     = "#ff8c00"
-WHITE      = "#fff0ff"
-DIM        = "#884488"
-BORDER     = "#8800cc"
-BTN_OFF_BG = "#3d0060"
-BTN_OFF_FG = "#aa55cc"
-BTN_ON_BG  = "#cc0077"
-BTN_ON_FG  = "#ffffff"
-SCAN_LINE  = "#220033"
-# ──────────────────────────────────────────────
-
-# Set by main() so FastAPI handlers can reach the live app
-_game_app: "EscapeRoomApp | None" = None
+from pc1.audio import AudioManager
+from pc1.config import (
+    TITLE, ADMIN_COMBO,
+    PASSWORD, SWITCH_SOLUTION, SWITCH_LABELS, FLAVOR_LINES,
+    FAIL_MSG, SWITCH_FAIL,
+    AUDIO_WRONG, AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
+    IDLE_LIGHT_INTERVAL_MS,
+    BG, BG_PANEL, BG_HEADER, PINK, YELLOW, PURPLE, ORANGE, WHITE, DIM, BORDER,
+    BTN_OFF_BG, BTN_OFF_FG, BTN_ON_BG, BTN_ON_FG,
+)
+from pc1.api import notify_pc2
+from pc1.widgets import GlitchLabel, ScanlineCanvas
 
 
-# ═══════════════════════════════════════════════════
-#  AUDIO MANAGER
-# ═══════════════════════════════════════════════════
-class AudioManager:
-    def __init__(self):
-        self._ok = False
-        if not PYGAME_OK:
-            return
-        try:
-            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=1024)
-            pygame.mixer.set_num_channels(4)
-            self._sfx_ch   = pygame.mixer.Channel(1)
-            self._story_ch = pygame.mixer.Channel(2)
-            self._ok = True
-        except Exception as e:
-            print(f"[Audio] mixer init failed: {e}")
-
-    def _load(self, path):
-        if not self._ok:
-            return None
-        if not os.path.exists(path):
-            print(f"[Audio] file not found: {path}")
-            return None
-        try:
-            return pygame.mixer.Sound(path)
-        except Exception as e:
-            print(f"[Audio] load error {path}: {e}")
-            return None
-
-    def _unduck(self):
-        if self._ok:
-            pygame.mixer.music.set_volume(THEME_VOLUME)
-
-    def play_intro(self):
-        """Play intro once, then automatically start the looping theme."""
-        if not self._ok:
-            return
-        snd = self._load(AUDIO_INTRO)
-        if snd:
-            self._sfx_ch.set_volume(SFX_VOLUME)
-            self._sfx_ch.play(snd)
-            threading.Timer(snd.get_length() + 0.5, self.start_main_theme).start()
-        else:
-            self.start_main_theme()
-
-    def start_main_theme(self):
-        if not self._ok:
-            return
-        if not os.path.exists(AUDIO_MAIN_THEME):
-            print(f"[Audio] main theme not found: {AUDIO_MAIN_THEME}")
-            return
-        try:
-            pygame.mixer.music.load(AUDIO_MAIN_THEME)
-            pygame.mixer.music.set_volume(THEME_VOLUME)
-            pygame.mixer.music.play(-1)
-        except Exception as e:
-            print(f"[Audio] theme error: {e}")
-
-    def play_sfx(self, path):
-        """Short SFX — ducks theme for its duration then restores."""
-        snd = self._load(path)
-        if not snd:
-            return
-        if self._ok:
-            pygame.mixer.music.set_volume(DUCK_VOLUME)
-            threading.Timer(snd.get_length() + 0.5, self._unduck).start()
-            self._sfx_ch.set_volume(SFX_VOLUME)
-            self._sfx_ch.play(snd)
-
-    def play_story(self, path):
-        """Longer story / victory clip — ducks theme while it plays."""
-        snd = self._load(path)
-        if not snd:
-            return
-        if self._ok:
-            pygame.mixer.music.set_volume(DUCK_VOLUME)
-            threading.Timer(snd.get_length() + 1.5, self._unduck).start()
-            self._story_ch.set_volume(SFX_VOLUME)
-            self._story_ch.play(snd)
-
-    def stop_all(self):
-        if not self._ok:
-            return
-        pygame.mixer.music.stop()
-        pygame.mixer.stop()
-
-    def restore_theme(self):
-        if not self._ok:
-            return
-        if not pygame.mixer.music.get_busy():
-            self.start_main_theme()
-        else:
-            pygame.mixer.music.set_volume(THEME_VOLUME)
-
-
-# ═══════════════════════════════════════════════════
-#  LIGHTS HELPER
-# ═══════════════════════════════════════════════════
-def notify_pc2(endpoint: str, payload: dict):
-    def _send():
-        try:
-            requests.post(
-                f"{PC2_URL}/{endpoint}",
-                json=payload,
-                headers={"X-API-Key": PC2_API_KEY},
-                timeout=1.0,
-            )
-        except Exception:
-            pass
-    threading.Thread(target=_send, daemon=True).start()
-
-
-# ═══════════════════════════════════════════════════
-#  PC1 GAME CONTROL API  (called by PC 2 controller)
-# ═══════════════════════════════════════════════════
-pc1_api = FastAPI(title="PC1 Game Control", docs_url=None, redoc_url=None)
-
-
-def _require_key(x_api_key: str = Header(...)):
-    if x_api_key != PC1_API_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-
-@pc1_api.get("/game/status")
-def api_game_status():
-    if _game_app:
-        elapsed = _game_app.game_elapsed_sec
-        if _game_app.game_running and _game_app.game_start_time:
-            elapsed += time.monotonic() - _game_app.game_start_time
-        return {
-            "stage":         _game_app.stage,
-            "attempts":      _game_app.attempt_count,
-            "timer_sec":     int(elapsed),
-            "timer_running": _game_app.game_running,
-        }
-    return {"stage": "starting", "attempts": 0, "timer_sec": 0, "timer_running": False}
-
-
-@pc1_api.post("/game/reset", dependencies=[Depends(_require_key)])
-def api_game_reset():
-    if _game_app:
-        _game_app.gm_reset()
-    return {"status": "ok"}
-
-
-@pc1_api.post("/game/start", dependencies=[Depends(_require_key)])
-def api_game_start():
-    if _game_app:
-        _game_app.gm_start()
-    return {"status": "ok"}
-
-
-@pc1_api.post("/game/pause", dependencies=[Depends(_require_key)])
-def api_game_pause():
-    if _game_app:
-        _game_app.gm_pause()
-    return {"status": "ok"}
-
-
-@pc1_api.post("/game/skip_s2", dependencies=[Depends(_require_key)])
-def api_game_skip():
-    if _game_app:
-        _game_app.gm_skip_to_stage2()
-    return {"status": "ok"}
-
-
-@pc1_api.post("/game/victory", dependencies=[Depends(_require_key)])
-def api_game_victory():
-    if _game_app:
-        _game_app.gm_trigger_victory()
-    return {"status": "ok"}
-
-
-@pc1_api.post("/game/audio/{action}", dependencies=[Depends(_require_key)])
-def api_audio(action: str):
-    if not _game_app:
-        raise HTTPException(status_code=503, detail="App not ready")
-    a = _game_app.audio
-    actions = {
-        "intro":   a.play_intro,
-        "theme":   a.start_main_theme,
-        "wrong":   lambda: a.play_sfx(AUDIO_WRONG),
-        "story":   lambda: a.play_story(AUDIO_STAGE1_STORY),
-        "victory": lambda: a.play_story(AUDIO_VICTORY),
-        "hint":    lambda: a.play_sfx(AUDIO_HINT),
-        "stop":    a.stop_all,
-        "restore": a.restore_theme,
-    }
-    if action not in actions:
-        raise HTTPException(status_code=404, detail="Unknown action")
-    actions[action]()
-    return {"status": "ok", "action": action}
-
-
-def _run_pc1_api():
-    config = uvicorn.Config(pc1_api, host="0.0.0.0", port=PC1_API_PORT,
-                            log_level="warning")
-    server = uvicorn.Server(config)
-    server.install_signal_handlers = False
-    server.run()
-
-
-# ═══════════════════════════════════════════════════
-#  GLITCH LABEL
-# ═══════════════════════════════════════════════════
-class GlitchLabel(tk.Label):
-    def __init__(self, parent, text, **kwargs):
-        self._original = text
-        super().__init__(parent, text=text, **kwargs)
-
-    def start_glitch(self, chance=0.03, interval=80):
-        self._glitch_loop(chance, interval)
-
-    def _glitch_loop(self, chance, interval):
-        if random.random() < chance:
-            self.config(text=self._corrupt(self._original))
-            self.after(60, lambda: self.config(text=self._original))
-        self.after(interval, lambda: self._glitch_loop(chance, interval))
-
-    def _corrupt(self, text):
-        chars = list(text)
-        glitch_chars = "█▓▒░▌▐╬╫╪╩╦╠═╔╗╚╝±≡≈∞"
-        for _ in range(max(1, len(chars) // 4)):
-            chars[random.randint(0, len(chars) - 1)] = random.choice(glitch_chars)
-        return "".join(chars)
-
-
-# ═══════════════════════════════════════════════════
-#  SCANLINE CANVAS
-# ═══════════════════════════════════════════════════
-class ScanlineCanvas(tk.Canvas):
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent, **kwargs)
-        self._offset = 0
-        self._draw_scanlines()
-
-    def _draw_scanlines(self):
-        self.delete("scanline")
-        h = self.winfo_height() or 900
-        w = self.winfo_width() or 1600
-        for y in range(self._offset % 4, h, 4):
-            self.create_line(0, y, w, y, fill=SCAN_LINE, tags="scanline", width=1)
-        self._offset = (self._offset + 1) % 4
-        self.after(80, self._draw_scanlines)
-
-
-# ═══════════════════════════════════════════════════
-#  MAIN APP
-# ═══════════════════════════════════════════════════
 class EscapeRoomApp:
-    def __init__(self, root, audio: AudioManager):
+    def __init__(self, root: tk.Tk, audio: AudioManager):
         self.root  = root
         self.audio = audio
         self.root.title(TITLE)
@@ -397,7 +50,7 @@ class EscapeRoomApp:
         self.attempt_count    = 0
         self.switch_states    = [False] * 6
         self.game_elapsed_sec = 0.0
-        self.game_start_time  = None   # monotonic() when last resumed; None = not running
+        self.game_start_time  = None
         self.game_running     = False
 
         self.f_mono   = tkfont.Font(family="Courier", size=13, weight="bold")
@@ -425,9 +78,8 @@ class EscapeRoomApp:
         self._tick_timer()
         self._idle_lights()
 
-    # ══════════════════════════════════════════
-    #  INTRO SEQUENCE
-    # ══════════════════════════════════════════
+    # ── Intro sequence ──────────────────────────────────────────────────────────
+
     def _build_intro_screen(self):
         self._clear_content()
         center = tk.Frame(self.content, bg=BG)
@@ -470,9 +122,8 @@ class EscapeRoomApp:
         self._build_password_stage()
         self._start_cursor_blink()
 
-    # ══════════════════════════════════════════
-    #  WAITING SCREEN
-    # ══════════════════════════════════════════
+    # ── Waiting screen ──────────────────────────────────────────────────────────
+
     def _build_waiting_screen(self):
         self._clear_content()
         center = tk.Frame(self.content, bg=BG)
@@ -510,9 +161,8 @@ class EscapeRoomApp:
         self._wait_blink_state = not self._wait_blink_state
         self.root.after(700, self._blink_waiting)
 
-    # ══════════════════════════════════════════
-    #  IDLE AMBIENT LIGHTS
-    # ══════════════════════════════════════════
+    # ── Idle ambient lights ─────────────────────────────────────────────────────
+
     def _idle_lights(self):
         if self.stage in ("waiting", "password", "switches"):
             color = random.choice([
@@ -530,9 +180,8 @@ class EscapeRoomApp:
             })
         self.root.after(IDLE_LIGHT_INTERVAL_MS, self._idle_lights)
 
-    # ══════════════════════════════════════════
-    #  SHARED CHROME
-    # ══════════════════════════════════════════
+    # ── Shared chrome ───────────────────────────────────────────────────────────
+
     def _build_header(self):
         header = tk.Frame(self.outer, bg=BG_HEADER, pady=6)
         header.pack(fill=tk.X, side=tk.TOP)
@@ -578,9 +227,8 @@ class EscapeRoomApp:
                                     bg=BG_PANEL, font=self.f_small)
         self.attempt_lbl.pack(anchor="w", pady=2)
 
-    # ══════════════════════════════════════════
-    #  STAGE 1 — PASSWORD
-    # ══════════════════════════════════════════
+    # ── Stage 1 — Password ──────────────────────────────────────────────────────
+
     def _build_password_stage(self):
         self._clear_content()
         self._build_left_panel(self.content)
@@ -643,9 +291,8 @@ class EscapeRoomApp:
                                            "duration_sec": 3.0})
             self._flash_red(3)
 
-    # ══════════════════════════════════════════
-    #  STAGE 2 — SWITCHES
-    # ══════════════════════════════════════════
+    # ── Stage 2 — Switches ──────────────────────────────────────────────────────
+
     def _transition_to_switches(self):
         self.stage = "switches"
         self.root.configure(bg=BG)
@@ -751,9 +398,8 @@ class EscapeRoomApp:
                                            "duration_sec": 3.0})
             self._flash_red(3)
 
-    # ══════════════════════════════════════════
-    #  STAGE 3 — FINAL SUCCESS
-    # ══════════════════════════════════════════
+    # ── Stage 3 — Final success ─────────────────────────────────────────────────
+
     def _show_final_success(self):
         self._clear_content()
         self.root.configure(bg=BG)
@@ -799,9 +445,8 @@ class EscapeRoomApp:
             self.root.after(120, lambda: cycle(i + 1))
         cycle()
 
-    # ══════════════════════════════════════════
-    #  GM ACTIONS  (called from FastAPI thread — use root.after for tkinter ops)
-    # ══════════════════════════════════════════
+    # ── GM actions (called from FastAPI thread — use root.after for tkinter ops) ─
+
     def gm_reset(self):
         def _do():
             self.stage            = "waiting"
@@ -826,7 +471,6 @@ class EscapeRoomApp:
         self.root.after(0, _do)
 
     def gm_pause(self):
-        """Toggle timer between running and paused."""
         def _do():
             if self.game_running:
                 self.game_elapsed_sec += time.monotonic() - self.game_start_time
@@ -849,9 +493,8 @@ class EscapeRoomApp:
     def gm_play_hint(self):
         self.audio.play_sfx(AUDIO_HINT)
 
-    # ══════════════════════════════════════════
-    #  HELPERS
-    # ══════════════════════════════════════════
+    # ── Helpers ─────────────────────────────────────────────────────────────────
+
     def _clear_content(self):
         for widget in self.content.winfo_children():
             widget.destroy()
@@ -922,24 +565,3 @@ class EscapeRoomApp:
     def _reset_f12(self):
         self._f12_presses = 0
         self._f12_timer = None
-
-
-# ═══════════════════════════════════════════════════
-#  ENTRY POINT
-# ═══════════════════════════════════════════════════
-def main():
-    global _game_app
-
-    audio = AudioManager()
-
-    threading.Thread(target=_run_pc1_api, daemon=True, name="pc1-api").start()
-    print(f"[PC1 API] Game control API listening on port {PC1_API_PORT}")
-
-    root = tk.Tk()
-    app = EscapeRoomApp(root, audio)
-    _game_app = app
-    root.mainloop()
-
-
-if __name__ == "__main__":
-    main()
