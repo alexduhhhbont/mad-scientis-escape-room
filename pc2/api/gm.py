@@ -6,7 +6,22 @@ from fastapi.responses import HTMLResponse
 from pc2.api.server import app
 from pc2.config import GM_KEY, PC1_URL, PC1_API_KEY, API_PORT
 from pc2.lighting.controller import controller
+from pc2.lighting.scenes import SCENES
 from pc2.log import log_queue
+
+# Maps GM action name → (scene_name, duration_sec, restore_scene)
+# duration=0 means permanent; restore="" means no restore.
+_SCENE_ACTIONS: dict = {
+    "waiting":        ("waiting",        0,   ""),
+    "intro":          ("intro",          0,   ""),
+    "rainbow":        ("rainbow",        0,   ""),
+    "phase1":         ("phase1",         0,   ""),
+    "phase2":         ("phase2",         0,   ""),
+    "phase1_correct": ("phase1_correct", 0,   ""),
+    "phase1_wrong":   ("phase1_wrong",   3.0, "phase1"),
+    "phase2_wrong":   ("phase2_wrong",   3.0, "phase2"),
+    "victory_green":  ("victory_green",  8.0, "rainbow"),
+}
 
 _GM_HTML = """
 <!DOCTYPE html>
@@ -39,10 +54,12 @@ _GM_HTML = """
     .btn-orange { background: #ff8c00; color: #fff; }
     .btn-red    { background: #cc1111; color: #fff; }
     .btn-green  { background: #00cc33; color: #000; }
+    .btn-aqua   { background: #00c8b4; color: #000; }
     .btn-dark   { background: #3d0060; color: #cc44ff; border: 1px solid #8800cc; }
     .full { grid-column: 1 / -1; }
     .secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .secondary .btn { padding: 10px 6px; font-size: 0.8rem; }
+    h4 { color: #884488; font-size: 0.75rem; margin: 10px 0 6px; letter-spacing: 1px; }
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: #ffd700; color: #1a0030; padding: 10px 22px; border-radius: 20px;
@@ -90,12 +107,26 @@ _GM_HTML = """
 
   <div class="card">
     <h3>💡 Lights</h3>
+
+    <h4>PHASE SCENES</h4>
     <div class="grid">
-      <button class="btn btn-pink"   onclick="ctrl('lights/rainbow')">🌈 Rainbow</button>
-      <button class="btn btn-purple" onclick="ctrl('lights/suspense')">😱 Suspense</button>
-      <button class="btn btn-orange" onclick="ctrl('lights/warning')">⚠ Warning</button>
-      <button class="btn btn-yellow" onclick="ctrl('lights/celebrate')">🎉 Celebrate</button>
-      <button class="btn btn-red full" onclick="ctrl('lights/blackout')">⬛ BLACKOUT</button>
+      <button class="btn btn-yellow" onclick="scene('waiting')">🌙 Waiting</button>
+      <button class="btn btn-pink"   onclick="scene('intro')">🌈 Intro</button>
+      <button class="btn btn-orange" onclick="scene('phase1')">🔑 Phase 1</button>
+      <button class="btn btn-purple" onclick="scene('phase2')">🔧 Phase 2</button>
+      <button class="btn btn-pink full" onclick="scene('rainbow')">🌈 Rainbow</button>
+    </div>
+
+    <h4>EVENT SCENES</h4>
+    <div class="grid">
+      <button class="btn btn-green"  onclick="scene('phase1_correct')">✅ P1 Correct</button>
+      <button class="btn btn-red"    onclick="scene('phase1_wrong')">❌ P1 Wrong</button>
+      <button class="btn btn-green"  onclick="scene('victory_green')">🏆 Victory</button>
+      <button class="btn btn-red"    onclick="scene('phase2_wrong')">❌ P2 Wrong</button>
+    </div>
+
+    <div style="margin-top:10px">
+      <button class="btn btn-dark full" onclick="ctrl('lights/blackout')" style="width:100%;padding:14px">⬛ BLACKOUT</button>
     </div>
   </div>
 
@@ -110,6 +141,14 @@ _GM_HTML = """
         const j = await r.json();
         toast(j.msg || j.error || 'OK');
         setTimeout(refreshStatus, 400);
+      } catch(e) { toast('Network error'); }
+    }
+
+    async function scene(name) {
+      try {
+        const r = await fetch('/gm/ctrl/lights/' + name + '?key=' + KEY, {method: 'POST'});
+        const j = await r.json();
+        toast(j.msg || j.error || 'OK');
       } catch(e) { toast('Network error'); }
     }
 
@@ -209,36 +248,21 @@ def gm_audio(action: str):
 
 @app.post("/gm/ctrl/lights/{action}", dependencies=[Depends(_gm_auth)])
 def gm_lights(action: str):
-    presets = {
-        "rainbow":   ("lights/sequence", {"type": "pulse",  "color": [255, 105, 180],
-                                          "intensity": 200, "frequency_hz": 0.5,
-                                          "duration_sec": 8.0}),
-        "suspense":  ("lights/sequence", {"type": "pulse",  "color": [100, 0, 150],
-                                          "intensity": 180, "frequency_hz": 0.2,
-                                          "duration_sec": 10.0}),
-        "warning":   ("lights/sequence", {"type": "flash",  "color": [255, 50, 0],
-                                          "intensity": 255, "frequency_hz": 4.0,
-                                          "duration_sec": 3.0}),
-        "celebrate": ("lights/sequence", {"type": "pulse",  "color": [255, 215, 0],
-                                          "intensity": 255, "frequency_hz": 0.4,
-                                          "duration_sec": 10.0}),
-        "blackout":  ("lights/blackout", {}),
-    }
-    if action not in presets:
-        raise HTTPException(status_code=404, detail="Unknown preset")
-    endpoint, payload = presets[action]
-    if endpoint == "lights/blackout":
+    if action == "blackout":
         controller.blackout()
-    else:
-        controller.start_sequence(
-            seq_type=payload["type"],
-            color=tuple(payload["color"]),
-            intensity=payload["intensity"],
-            frequency_hz=payload["frequency_hz"],
-            duration_sec=payload["duration_sec"],
-        )
-    log_queue.put(f"GM lights/{action}")
-    return {"msg": f"💡 lights/{action}"}
+        log_queue.put("GM lights/blackout")
+        return {"msg": "⬛ blackout"}
+
+    entry = _SCENE_ACTIONS.get(action)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Unknown light action: {action}")
+
+    scene_name, duration, restore = entry
+    jobs = SCENES.get(scene_name, [])
+    controller.set_scene(list(jobs), duration, restore)
+    suffix = f" ({duration}s → {restore})" if duration else ""
+    log_queue.put(f"GM lights/{action} → scene:{scene_name}{suffix}")
+    return {"msg": f"💡 {action}{suffix}"}
 
 
 @app.post("/gm/ctrl/game/{action}", dependencies=[Depends(_gm_auth)])
