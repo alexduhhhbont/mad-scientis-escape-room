@@ -246,6 +246,7 @@ def gm_status():
 @app.post("/gm/ctrl/audio/{action}", dependencies=[Depends(_gm_auth)])
 def gm_audio(action: str):
     actions = {
+        "waiting": audio_manager.play_waiting,
         "intro":   audio_manager.play_intro,
         "theme":   audio_manager.start_main_theme,
         "wrong":   lambda: audio_manager.play_sfx(AUDIO_WRONG),

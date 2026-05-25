@@ -160,6 +160,7 @@ class EscapeRoomApp:
     # ── Waiting screen ──────────────────────────────────────────────────────────
 
     def _build_waiting_screen(self):
+        notify_pc2("audio/waiting", {})
         notify_pc2("lights/scene", {"name": "waiting"})
         self._clear_content()
         center = tk.Frame(self.content, bg=BG)
@@ -492,7 +493,7 @@ class EscapeRoomApp:
             self.game_elapsed_sec = 0.0
             self.game_start_time  = None
             self.game_running     = False
-            notify_pc2("audio/restore", {})
+            notify_pc2("audio/waiting", {})
             notify_pc2("lights/scene", {"name": "waiting"})
             self._build_waiting_screen()
         self.root.after(0, _do)

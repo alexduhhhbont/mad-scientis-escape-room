@@ -12,6 +12,7 @@ from fastapi import Depends
 @app.post("/audio/{action}", dependencies=[Depends(require_api_key)])
 def api_audio(action: str):
     actions = {
+        "waiting": audio_manager.play_waiting,
         "intro":   audio_manager.play_intro,
         "theme":   audio_manager.start_main_theme,
         "wrong":   lambda: audio_manager.play_sfx(AUDIO_WRONG),

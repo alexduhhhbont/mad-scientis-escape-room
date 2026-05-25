@@ -9,7 +9,7 @@ except ImportError:
     print("[Audio] pygame not installed — audio disabled.  Run: pip install pygame")
 
 from pc2.config import (
-    AUDIO_INTRO, AUDIO_MAIN_THEME, AUDIO_WRONG,
+    AUDIO_WAITING, AUDIO_INTRO, AUDIO_MAIN_THEME, AUDIO_WRONG,
     AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
     THEME_VOLUME, DUCK_VOLUME, SFX_VOLUME,
 )
@@ -44,6 +44,19 @@ class AudioManager:
     def _unduck(self):
         if self._ok:
             pygame.mixer.music.set_volume(THEME_VOLUME)
+
+    def play_waiting(self):
+        if not self._ok:
+            return
+        if not os.path.exists(AUDIO_WAITING):
+            print(f"[Audio] waiting song not found: {AUDIO_WAITING}")
+            return
+        try:
+            pygame.mixer.music.load(AUDIO_WAITING)
+            pygame.mixer.music.set_volume(THEME_VOLUME)
+            pygame.mixer.music.play(-1)
+        except Exception as e:
+            print(f"[Audio] waiting song error: {e}")
 
     def play_intro(self):
         if not self._ok:
