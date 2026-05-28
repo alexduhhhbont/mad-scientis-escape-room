@@ -14,6 +14,7 @@ import threading
 import tkinter as tk
 
 from pc2.api.server import run_server
+from pc2.audio import audio_manager
 from pc2.config import API_PORT, GM_KEY
 from pc2.dmx.streamer import dmx_streaming_loop
 from pc2.gui.app import ControllerApp
@@ -26,6 +27,8 @@ def main():
 
     # Thread 3: DMX streaming loop
     threading.Thread(target=dmx_streaming_loop, daemon=True, name="dmx-streamer").start()
+
+    audio_manager.play_waiting()
 
     # Main thread: Tkinter GUI
     root = tk.Tk()

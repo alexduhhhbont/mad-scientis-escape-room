@@ -91,6 +91,13 @@ def api_game_victory():
     return {"status": "ok"}
 
 
+@pc1_api.post("/game/intro_done", dependencies=[Depends(_require_key)])
+def api_intro_done():
+    if _game_app:
+        _game_app.gm_intro_done()
+    return {"status": "ok"}
+
+
 
 def run_api_server() -> None:
     config = uvicorn.Config(pc1_api, host="0.0.0.0", port=PC1_API_PORT, log_level="warning")

@@ -43,13 +43,43 @@
       "id": 2,
       "name": "Fixture 2",
       "type_id": "eurolite-rgb",
-      "dmx_address": 10
+      "dmx_address": 6
     },
     {
       "id": 3,
       "name": "Fixture 3",
       "type_id": "eurolite-rgb",
-      "dmx_address": 19
+      "dmx_address": 11
+    },
+    {
+      "id": 4,
+      "name": "Fixture 4",
+      "type_id": "eurolite-rgb",
+      "dmx_address": 16
+    },
+    {
+      "id": 5,
+      "name": "Fixture 5",
+      "type_id": "eurolite-rgb",
+      "dmx_address": 21
+    },
+    {
+      "id": 6,
+      "name": "Fixture 6",
+      "type_id": "eurolite-rgb",
+      "dmx_address": 26
+    },
+    {
+      "id": 7,
+      "name": "Fixture 7",
+      "type_id": "eurolite-rgb",
+      "dmx_address": 31
+    },
+    {
+      "id": 8,
+      "name": "Fixture 8",
+      "type_id": "eurolite-rgb",
+      "dmx_address": 36
     }
   ]
 }

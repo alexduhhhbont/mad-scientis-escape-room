@@ -8,10 +8,16 @@ except ImportError:
     PYGAME_OK = False
     print("[Audio] pygame not installed — audio disabled.  Run: pip install pygame")
 
+try:
+    import requests as _requests
+except ImportError:
+    _requests = None
+
 from pc2.config import (
     AUDIO_WAITING, AUDIO_INTRO, AUDIO_MAIN_THEME, AUDIO_WRONG,
     AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
     THEME_VOLUME, DUCK_VOLUME, SFX_VOLUME,
+    PC1_URL, PC1_API_KEY,
 )
 
 
@@ -61,13 +67,26 @@ class AudioManager:
     def play_intro(self):
         if not self._ok:
             return
+        pygame.mixer.music.stop()
         snd = self._load(AUDIO_INTRO)
         if snd:
             self._sfx_ch.set_volume(SFX_VOLUME)
             self._sfx_ch.play(snd)
-            threading.Timer(snd.get_length() + 0.5, self.start_main_theme).start()
+            threading.Timer(snd.get_length() + 0.5, self._on_intro_done).start()
         else:
-            self.start_main_theme()
+            self._on_intro_done()
+
+    def _on_intro_done(self):
+        self.start_main_theme()
+        if _requests:
+            try:
+                _requests.post(
+                    f"{PC1_URL}/game/intro_done",
+                    headers={"X-API-Key": PC1_API_KEY},
+                    timeout=2.0,
+                )
+            except Exception as e:
+                print(f"[Audio] intro_done notify failed: {e}")
 
     def start_main_theme(self):
         if not self._ok:

@@ -84,6 +84,14 @@ class ScenePayload(BaseModel):
 
 @app.post("/lights/scene", dependencies=[Depends(require_api_key)])
 def lights_scene(payload: ScenePayload):
+    from pc2.lighting.timeline import start_intro_timeline, cancel_intro_timeline
+
+    if payload.name == "intro":
+        start_intro_timeline()
+        log_queue.put("API /lights/scene → intro (timeline started)")
+        return {"status": "ok", "scene": "intro"}
+
+    cancel_intro_timeline()
     jobs = SCENES.get(payload.name)
     if jobs is None:
         raise HTTPException(status_code=404, detail=f"Unknown scene: {payload.name}")

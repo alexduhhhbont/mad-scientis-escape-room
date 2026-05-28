@@ -17,7 +17,7 @@ API_KEY  = "change-me-to-something-random"
 FIXTURES_FILE = Path(__file__).parent.parent / "fixtures.json"
 
 # ─── PC1 connection ──────────────────────────────────
-PC1_URL     = "http://192.168.178.151:8001"
+PC1_URL     = "http://10.0.0.117:8001"
 PC1_API_KEY = "change-me-to-something-random"
 
 # ─── GM phone panel ──────────────────────────────────
