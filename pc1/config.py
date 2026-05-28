@@ -26,7 +26,7 @@ FAIL_MSG    = "⚠  VERKEERDE CODE — DE MACHINE IS IN DE WAR!"
 SWITCH_FAIL = "⚠  VERKEERDE HENDELS — CHOCOLADE OVERSTROMING!"
 
 # ─── PC2 / Lights ───────────────────────────────────
-PC2_URL     = "http://192.168.178.84:8000"
+PC2_URL     = "http://10.0.0.108:8000"
 PC2_API_KEY = "change-me-to-something-random"
 
 # ─── PC1 Game Control API ───────────────────────────
