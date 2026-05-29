@@ -49,6 +49,8 @@ class EscapeRoomApp:
         self.game_elapsed_sec = 0.0
         self.game_start_time  = None
         self.game_running     = False
+        self._fact_popup      = None
+        self._fact_badge      = None
 
         self.f_mono   = tkfont.Font(family="Courier", size=13, weight="bold")
         self.f_big    = tkfont.Font(family="Courier", size=28, weight="bold")
@@ -275,6 +277,7 @@ class EscapeRoomApp:
         if code == PASSWORD.upper():
             self.entry.config(state="disabled")
             self.submit_btn.config(state="disabled")
+            notify_pc2("audio/phase2_story", {})
             notify_pc2("lights/scene", {"name": "phase1_correct", "fade": 2.0})
             self._animate_flash(callback=self._build_boot_screen)
         else:
@@ -358,7 +361,6 @@ class EscapeRoomApp:
     def _transition_to_switches(self):
         self.stage = "switches"
         self.root.configure(bg=BG)
-        notify_pc2("audio/phase2_story", {})
         notify_pc2("lights/scene", {"name": "phase2", "fade": 2.0})
         self._build_switch_stage()
 
@@ -439,6 +441,8 @@ class EscapeRoomApp:
                                         fg=ORANGE, bg=BG, font=self.f_medium)
         self.switch_feedback.pack(pady=(10, 0))
 
+        self.root.after(600, self._show_fact_popup)
+
     def _toggle_switch(self, idx):
         if self.stage != "switches":
             return
@@ -457,6 +461,7 @@ class EscapeRoomApp:
         if self.switch_states == SWITCH_SOLUTION:
             self.stage = "phase3"
             self.confirm_btn.config(state="disabled")
+            self._destroy_fact_popup()
             self._animate_flash(callback=self._build_phase3_screen)
         else:
             self.attempt_count += 1
@@ -572,10 +577,74 @@ class EscapeRoomApp:
             self.root.after(120, lambda: cycle(i + 1))
         cycle()
 
+    # ── Fact popup (shown after boot, minimizes to badge, gone after phase 3) ─────
+
+    def _show_fact_popup(self):
+        self._destroy_fact_popup()   # clear any leftover from a previous run
+
+        popup = tk.Frame(self.outer, bg=BG_PANEL,
+                         highlightbackground=YELLOW, highlightthickness=2)
+        self._fact_popup = popup
+
+        # ── header row ─────────────────────────────────────────────────────────
+        hdr = tk.Frame(popup, bg=BG_HEADER, padx=14, pady=8)
+        hdr.pack(fill=tk.X)
+
+        tk.Label(hdr, text="📋  FEITJE VAN DE DAG",
+                 fg=YELLOW, bg=BG_HEADER, font=self.f_mono).pack(side=tk.LEFT)
+
+        tk.Button(hdr, text="  ×  ", command=self._minimize_fact_popup,
+                  fg=DIM, bg=BG_HEADER, activebackground=BG_PANEL,
+                  activeforeground=WHITE, font=self.f_mono,
+                  relief=tk.FLAT, bd=0, cursor="hand2").pack(side=tk.RIGHT)
+
+        tk.Frame(popup, bg=BORDER, height=1).pack(fill=tk.X)
+
+        # ── body ───────────────────────────────────────────────────────────────
+        body = tk.Frame(popup, bg=BG_PANEL, padx=24, pady=18)
+        body.pack(fill=tk.X)
+
+        tk.Label(body,
+                 text="Deze machine draait al sinds 1990.",
+                 fg=WHITE, bg=BG_PANEL, font=self.f_medium,
+                 justify="center").pack()
+
+        # ── position centered over the content area ────────────────────────────
+        popup.place(relx=0.5, rely=0.5, anchor="center")
+
+    def _minimize_fact_popup(self):
+        if self._fact_popup:
+            self._fact_popup.place_forget()
+
+        badge = tk.Button(self.outer, text="📋 feitje",
+                          command=self._restore_fact_popup,
+                          fg=YELLOW, bg=BG_PANEL,
+                          activebackground=BG_HEADER, activeforeground=YELLOW,
+                          font=self.f_small, relief=tk.FLAT, bd=0,
+                          padx=10, pady=5, cursor="hand2")
+        badge.place(relx=1.0, rely=1.0, anchor="se", x=-12, y=-38)
+        self._fact_badge = badge
+
+    def _restore_fact_popup(self):
+        if self._fact_badge:
+            self._fact_badge.destroy()
+            self._fact_badge = None
+        if self._fact_popup:
+            self._fact_popup.place(relx=0.5, rely=0.5, anchor="center")
+
+    def _destroy_fact_popup(self):
+        if self._fact_popup:
+            self._fact_popup.destroy()
+            self._fact_popup = None
+        if self._fact_badge:
+            self._fact_badge.destroy()
+            self._fact_badge = None
+
     # ── GM actions (called from FastAPI thread — use root.after for tkinter ops) ─
 
     def gm_reset(self):
         def _do():
+            self._destroy_fact_popup()
             self.stage            = "waiting"
             self.attempt_count    = 0
             self.switch_states    = [False] * 6
@@ -622,6 +691,7 @@ class EscapeRoomApp:
 
     def gm_skip_to_stage3(self):
         def _do():
+            self._destroy_fact_popup()
             self.stage = "phase3"
             self._build_phase3_screen()
         self.root.after(0, _do)
