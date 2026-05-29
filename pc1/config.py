@@ -25,6 +25,16 @@ FLAVOR_LINES = [
 FAIL_MSG    = "⚠  VERKEERDE CODE — DE MACHINE IS IN DE WAR!"
 SWITCH_FAIL = "⚠  VERKEERDE HENDELS — CHOCOLADE OVERSTROMING!"
 
+# ─── Stage 3 — machine active dashboard ─────────────
+MACHINE_TOP_CANDY = "🐻 Gummibeer"
+MACHINE_REVENUE = [
+    ("🍭 Lolly",         "€ 312"),
+    ("🐻 Gummibeer",     "€ 748"),
+    ("🍫 Chocoladereep", "€ 531"),
+    ("🍬 Zuurstok",      "€ 205"),
+    ("🍩 Donut",         "€ 167"),
+]
+
 # ─── PC2 / Lights ───────────────────────────────────
 PC2_URL     = "http://10.0.0.108:8000"
 PC2_API_KEY = "change-me-to-something-random"

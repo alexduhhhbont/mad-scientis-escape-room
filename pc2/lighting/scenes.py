@@ -355,6 +355,18 @@ SCENES: dict = {
         _f(8, _RED, 255, 4.0),
     ],
 
+    # ── Phase 3 — machine active (warm white + orange/yellow pulse) ─────────────
+    "phase3": [
+        _s(1, _WARM_WHITE, _WARM_INT),
+        _s(2, _WARM_WHITE, _WARM_INT),
+        _s(3, _WARM_WHITE, _WARM_INT),
+        _s(4, _WARM_WHITE, _WARM_INT),
+        _p(5, _ORANGE, _ACC, hz=0.3, phase=0.0),
+        _p(6, _ORANGE, _ACC, hz=0.3, phase=0.5),
+        _p(7, _YELLOW, _ACC, hz=0.3, phase=0.25),
+        _p(8, _YELLOW, _ACC, hz=0.3, phase=0.75),
+    ],
+
     # ── Victory — accent lights green for 8 s, then rainbow auto-restores ────
     "victory_green": [
         _s(1, _WARM_WHITE, _WARM_INT),

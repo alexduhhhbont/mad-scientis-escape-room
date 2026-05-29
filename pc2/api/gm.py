@@ -7,7 +7,7 @@ from pc2.api.server import app
 from pc2.audio import audio_manager
 from pc2.config import (
     GM_KEY, PC1_URL, PC1_API_KEY, API_PORT,
-    AUDIO_WRONG, AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
+    AUDIO_WRONG, AUDIO_HINT,
 )
 from pc2.lighting.controller import controller
 from pc2.lighting.scenes import SCENES
@@ -25,6 +25,7 @@ _SCENE_ACTIONS: dict = {
     "phase1_wrong":   ("phase1_wrong",   3.0, "phase1",  0.0),
     "phase2_wrong":   ("phase2_wrong",   3.0, "phase2",  0.0),
     "victory_green":  ("victory_green",  8.0, "rainbow", 2.0),
+    "phase3":         ("phase3",         0,   "",        2.0),
 }
 
 _GM_HTML = """
@@ -84,49 +85,58 @@ _GM_HTML = """
   <div class="card">
     <h3>🎮 Game Controls</h3>
     <div class="grid">
-      <button class="btn btn-green"  onclick="ctrl('game/start')">▶ START</button>
-      <button class="btn btn-orange" id="btn-pause" onclick="ctrl('game/pause')">⏸ PAUSE</button>
-      <button class="btn btn-yellow" onclick="ctrl('game/victory')">🏆 WIN</button>
-      <button class="btn btn-red"    onclick="confirmReset()">↺ RESET</button>
-    </div>
-    <div class="secondary">
-      <button class="btn btn-purple" onclick="ctrl('game/hint')">💡 Hint</button>
-      <button class="btn btn-dark"   onclick="ctrl('game/skip_s2')">⏭ Stage 2</button>
+      <button class="btn btn-dark"   onclick="confirmReset()">🌙 Waiting</button>
+      <button class="btn btn-green"  onclick="ctrl('game/start')">▶ Start</button>
+      <button class="btn btn-pink"   onclick="ctrl('game/skip_s1')">🔑 Phase 1</button>
+      <button class="btn btn-purple" onclick="ctrl('game/skip_s2')">🔧 Phase 2</button>
+      <button class="btn btn-orange" onclick="ctrl('game/skip_s3')">🏭 Phase 3</button>
+      <button class="btn btn-yellow full" onclick="ctrl('game/victory')">🏆 WIN</button>
     </div>
   </div>
 
   <div class="card">
     <h3>🎵 Audio</h3>
+
+    <h4>PHASES</h4>
     <div class="grid">
-      <button class="btn btn-yellow" onclick="ctrl('audio/intro')">▶ Intro</button>
-      <button class="btn btn-pink"   onclick="ctrl('audio/theme')">♫ Theme</button>
-      <button class="btn btn-orange" onclick="ctrl('audio/wrong')">⚠ Wrong SFX</button>
-      <button class="btn btn-purple" onclick="ctrl('audio/story')">📖 Story</button>
+      <button class="btn btn-dark"   onclick="ctrl('audio/waiting')">🌙 Waiting</button>
+      <button class="btn btn-yellow" onclick="ctrl('audio/intro')">🌈 Intro</button>
+      <button class="btn btn-pink"   onclick="ctrl('audio/phase1_theme')">♫ P1 Theme</button>
+      <button class="btn btn-purple" onclick="ctrl('audio/phase2_story')">📖 P2 Story</button>
+      <button class="btn btn-purple" onclick="ctrl('audio/phase2_theme')">♫ P2 Theme</button>
+      <button class="btn btn-orange" onclick="ctrl('audio/phase3_story')">📖 P3 Story</button>
+      <button class="btn btn-orange" onclick="ctrl('audio/phase3_theme')">♫ P3 Theme</button>
       <button class="btn btn-yellow" onclick="ctrl('audio/victory')">🏆 Victory</button>
-      <button class="btn btn-purple" onclick="ctrl('audio/hint')">💡 Hint</button>
-      <button class="btn btn-dark"   onclick="ctrl('audio/restore')">↺ Restore</button>
-      <button class="btn btn-red"    onclick="ctrl('audio/stop')">■ Stop All</button>
+    </div>
+
+    <h4>EVENTS</h4>
+    <div class="grid">
+      <button class="btn btn-red"  onclick="ctrl('audio/wrong')">⚠ Wrong</button>
+      <button class="btn btn-aqua" onclick="ctrl('audio/hint')">💡 Hint</button>
+      <button class="btn btn-dark" onclick="ctrl('audio/restore')">↺ Restore</button>
+      <button class="btn btn-red"  onclick="ctrl('audio/stop')">■ Stop All</button>
     </div>
   </div>
 
   <div class="card">
     <h3>💡 Lights</h3>
 
-    <h4>PHASE SCENES</h4>
+    <h4>PHASES</h4>
     <div class="grid">
-      <button class="btn btn-yellow" onclick="scene('waiting')">🌙 Waiting</button>
+      <button class="btn btn-dark"   onclick="scene('waiting')">🌙 Waiting</button>
       <button class="btn btn-pink"   onclick="scene('intro')">🌈 Intro</button>
-      <button class="btn btn-orange" onclick="scene('phase1')">🔑 Phase 1</button>
+      <button class="btn btn-pink"   onclick="scene('phase1')">🔑 Phase 1</button>
       <button class="btn btn-purple" onclick="scene('phase2')">🔧 Phase 2</button>
-      <button class="btn btn-pink full" onclick="scene('rainbow')">🌈 Rainbow</button>
+      <button class="btn btn-orange" onclick="scene('phase3')">🏭 Phase 3</button>
+      <button class="btn btn-yellow" onclick="scene('rainbow')">🌈 Rainbow</button>
     </div>
 
-    <h4>EVENT SCENES</h4>
+    <h4>EVENTS</h4>
     <div class="grid">
-      <button class="btn btn-green"  onclick="scene('phase1_correct')">✅ P1 Correct</button>
-      <button class="btn btn-red"    onclick="scene('phase1_wrong')">❌ P1 Wrong</button>
-      <button class="btn btn-green"  onclick="scene('victory_green')">🏆 Victory</button>
-      <button class="btn btn-red"    onclick="scene('phase2_wrong')">❌ P2 Wrong</button>
+      <button class="btn btn-green" onclick="scene('phase1_correct')">✅ P1 Correct</button>
+      <button class="btn btn-red"   onclick="scene('phase1_wrong')">❌ P1 Wrong</button>
+      <button class="btn btn-green" onclick="scene('victory_green')">🏆 Victory</button>
+      <button class="btn btn-red"   onclick="scene('phase2_wrong')">❌ P2 Wrong</button>
     </div>
 
     <div style="margin-top:10px">
@@ -157,7 +167,7 @@ _GM_HTML = """
     }
 
     function confirmReset() {
-      if (confirm('Reset the game back to Stage 1?')) ctrl('game/reset');
+      if (confirm('Reset to waiting screen?')) ctrl('game/reset');
     }
 
     async function refreshStatus() {
@@ -183,8 +193,6 @@ _GM_HTML = """
           '📍 ' + j.stage.toUpperCase() +
           '   ❌ Fails: ' + j.attempts +
           '   DMX: ' + j.dmx;
-        const pb = document.getElementById('btn-pause');
-        if (pb) pb.textContent = j.timer_running ? '⏸ PAUSE' : '▶ RESUME';
       } catch(e) {}
     }
 
@@ -246,15 +254,18 @@ def gm_status():
 @app.post("/gm/ctrl/audio/{action}", dependencies=[Depends(_gm_auth)])
 def gm_audio(action: str):
     actions = {
-        "waiting": audio_manager.play_waiting,
-        "intro":   audio_manager.play_intro,
-        "theme":   audio_manager.start_main_theme,
-        "wrong":   lambda: audio_manager.play_sfx(AUDIO_WRONG),
-        "story":   lambda: audio_manager.play_story(AUDIO_STAGE1_STORY),
-        "victory": lambda: audio_manager.play_story(AUDIO_VICTORY),
-        "hint":    lambda: audio_manager.play_sfx(AUDIO_HINT),
-        "stop":    audio_manager.stop_all,
-        "restore": audio_manager.restore_theme,
+        "waiting":      audio_manager.play_waiting,
+        "intro":        audio_manager.play_intro,
+        "phase1_theme": audio_manager.start_phase1_theme,
+        "phase2_story": audio_manager.play_phase2_story,
+        "phase2_theme": audio_manager.start_phase2_theme,
+        "phase3_story": audio_manager.play_phase3_story,
+        "phase3_theme": audio_manager.start_phase3_theme,
+        "victory":      audio_manager.play_victory,
+        "wrong":        lambda: audio_manager.play_sfx(AUDIO_WRONG),
+        "hint":         lambda: audio_manager.play_sfx(AUDIO_HINT),
+        "stop":         audio_manager.stop_all,
+        "restore":      audio_manager.restore_theme,
     }
     if action not in actions:
         raise HTTPException(status_code=404, detail=f"Unknown audio action: {action}")
@@ -288,7 +299,9 @@ def gm_game(action: str):
         "reset":   "game/reset",
         "start":   "game/start",
         "pause":   "game/pause",
+        "skip_s1": "game/skip_s1",
         "skip_s2": "game/skip_s2",
+        "skip_s3": "game/skip_s3",
         "victory": "game/victory",
         "hint":    "game/audio/hint",
     }

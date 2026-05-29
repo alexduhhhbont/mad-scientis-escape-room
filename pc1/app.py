@@ -358,7 +358,7 @@ class EscapeRoomApp:
     def _transition_to_switches(self):
         self.stage = "switches"
         self.root.configure(bg=BG)
-        notify_pc2("audio/story", {})
+        notify_pc2("audio/phase2_story", {})
         notify_pc2("lights/scene", {"name": "phase2", "fade": 2.0})
         self._build_switch_stage()
 
@@ -455,9 +455,9 @@ class EscapeRoomApp:
 
     def _check_switches(self):
         if self.switch_states == SWITCH_SOLUTION:
-            self.stage = "complete"
+            self.stage = "phase3"
             self.confirm_btn.config(state="disabled")
-            self._animate_flash(callback=self._show_final_success)
+            self._animate_flash(callback=self._build_phase3_screen)
         else:
             self.attempt_count += 1
             self.attempt_lbl.config(text=f"{self.attempt_count} MISLUKT")
@@ -467,7 +467,66 @@ class EscapeRoomApp:
                                         "duration": 3.0, "restore": "phase2"})
             self._flash_red(3)
 
-    # ── Stage 3 — Final success ─────────────────────────────────────────────────
+    # ── Stage 3 — Machine active (physical puzzle) ──────────────────────────────
+
+    def _build_phase3_screen(self):
+        self._clear_content()
+        self.root.configure(bg=BG)
+        notify_pc2("audio/phase3_story", {})
+        notify_pc2("lights/scene", {"name": "phase3", "fade": 2.0})
+
+        center = tk.Frame(self.content, bg=BG)
+        center.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(center, text="🏭  MACHINE ACTIEF",
+                 fg=YELLOW, bg=BG, font=self.f_huge).pack(pady=(20, 4))
+
+        tk.Label(center,
+                 text="Meest geproduceerde snoepsoort van vandaag:  🐻 Gummibeer",
+                 fg=PINK, bg=BG, font=self.f_medium).pack(pady=(0, 18))
+
+        tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=100, pady=4)
+
+        # Table frame
+        tbl = tk.Frame(center, bg=BG_PANEL,
+                       highlightbackground=BORDER, highlightthickness=1)
+        tbl.pack(pady=10)
+
+        headers = ["Snoepsoort", "Omzet"]
+        col_widths = [22, 10]
+        for col, (h, w) in enumerate(zip(headers, col_widths)):
+            tk.Label(tbl, text=h, fg=PURPLE, bg=BG_PANEL,
+                     font=self.f_mono, width=w, anchor="w",
+                     padx=14, pady=6).grid(row=0, column=col, sticky="w")
+
+        tk.Frame(tbl, bg=BORDER, height=1).grid(
+            row=1, column=0, columnspan=2, sticky="ew", padx=4, pady=0)
+
+        rows = [
+            ("🍭 Lolly",          "€ 312"),
+            ("🐻 Gummibeer",      "€ 748"),
+            ("🍫 Chocoladereep",  "€ 531"),
+            ("🍬 Zuurstok",       "€ 205"),
+            ("🍩 Donut",          "€ 167"),
+        ]
+        for r, (name, omzet) in enumerate(rows, start=2):
+            name_fg  = YELLOW if "Gummibeer" in name else WHITE
+            omzet_fg = YELLOW if "Gummibeer" in name else WHITE
+            name_bg  = "#1e0038" if "Gummibeer" in name else BG_PANEL
+            tk.Label(tbl, text=name, fg=name_fg, bg=name_bg,
+                     font=self.f_mono, width=col_widths[0], anchor="w",
+                     padx=14, pady=5).grid(row=r, column=0, sticky="w")
+            tk.Label(tbl, text=omzet, fg=omzet_fg, bg=name_bg,
+                     font=self.f_mono, width=col_widths[1], anchor="w",
+                     padx=14, pady=5).grid(row=r, column=1, sticky="w")
+
+        tk.Frame(center, bg=BORDER, height=2).pack(fill=tk.X, padx=100, pady=12)
+
+        tk.Label(center,
+                 text="[ PRODUCTIELIJN ACTIEF — VOLGENDE STAP VEREIST ]",
+                 fg=DIM, bg=BG, font=self.f_small).pack()
+
+    # ── Stage 4 — Final success ─────────────────────────────────────────────────
 
     def _show_final_success(self):
         self._clear_content()
@@ -548,8 +607,24 @@ class EscapeRoomApp:
                 self.game_running    = True
         self.root.after(0, _do)
 
+    def gm_skip_to_stage1(self):
+        def _do():
+            self.stage           = "password"
+            self.game_start_time = time.monotonic()
+            self.game_running    = True
+            notify_pc2("lights/scene", {"name": "phase1", "fade": 2.0})
+            self._build_password_stage()
+            self._start_cursor_blink()
+        self.root.after(0, _do)
+
     def gm_skip_to_stage2(self):
         self.root.after(0, self._transition_to_switches)
+
+    def gm_skip_to_stage3(self):
+        def _do():
+            self.stage = "phase3"
+            self._build_phase3_screen()
+        self.root.after(0, _do)
 
     def gm_trigger_victory(self):
         def _do():

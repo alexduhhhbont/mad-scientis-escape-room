@@ -24,14 +24,17 @@ PC1_API_KEY = "change-me-to-something-random"
 GM_KEY = "candy-gm"
 
 # ─── Audio ───────────────────────────────────────────
-AUDIO_DIR          = "audio"
-AUDIO_WAITING      = os.path.join(AUDIO_DIR, "waiting.mp3")
-AUDIO_INTRO        = os.path.join(AUDIO_DIR, "intro.mp3")
-AUDIO_MAIN_THEME   = os.path.join(AUDIO_DIR, "theme.mp3")
-AUDIO_WRONG        = os.path.join(AUDIO_DIR, "wrong.mp3")
-AUDIO_STAGE1_STORY = os.path.join(AUDIO_DIR, "stage1_story.wav")
-AUDIO_VICTORY      = os.path.join(AUDIO_DIR, "victory.wav")
-AUDIO_HINT         = os.path.join(AUDIO_DIR, "hint.wav")
+AUDIO_DIR           = "audio"
+AUDIO_WAITING       = os.path.join(AUDIO_DIR, "waiting.mp3")
+AUDIO_INTRO         = os.path.join(AUDIO_DIR, "intro.mp3")
+AUDIO_PHASE1_THEME  = os.path.join(AUDIO_DIR, "phase1_theme.mp3")
+AUDIO_PHASE2_STORY  = os.path.join(AUDIO_DIR, "phase2_story.wav")
+AUDIO_PHASE2_THEME  = os.path.join(AUDIO_DIR, "phase2_theme.mp3")
+AUDIO_PHASE3_STORY  = os.path.join(AUDIO_DIR, "phase3_story.wav")
+AUDIO_PHASE3_THEME  = os.path.join(AUDIO_DIR, "phase3_theme.mp3")
+AUDIO_VICTORY       = os.path.join(AUDIO_DIR, "victory.wav")
+AUDIO_WRONG         = os.path.join(AUDIO_DIR, "wrong.mp3")
+AUDIO_HINT          = os.path.join(AUDIO_DIR, "hint.wav")
 
 THEME_VOLUME = 0.40
 DUCK_VOLUME  = 0.10

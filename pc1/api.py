@@ -77,10 +77,24 @@ def api_game_pause():
     return {"status": "ok"}
 
 
+@pc1_api.post("/game/skip_s1", dependencies=[Depends(_require_key)])
+def api_game_skip_s1():
+    if _game_app:
+        _game_app.gm_skip_to_stage1()
+    return {"status": "ok"}
+
+
 @pc1_api.post("/game/skip_s2", dependencies=[Depends(_require_key)])
-def api_game_skip():
+def api_game_skip_s2():
     if _game_app:
         _game_app.gm_skip_to_stage2()
+    return {"status": "ok"}
+
+
+@pc1_api.post("/game/skip_s3", dependencies=[Depends(_require_key)])
+def api_game_skip_s3():
+    if _game_app:
+        _game_app.gm_skip_to_stage3()
     return {"status": "ok"}
 
 

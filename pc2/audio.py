@@ -14,8 +14,11 @@ except ImportError:
     _requests = None
 
 from pc2.config import (
-    AUDIO_WAITING, AUDIO_INTRO, AUDIO_MAIN_THEME, AUDIO_WRONG,
-    AUDIO_STAGE1_STORY, AUDIO_VICTORY, AUDIO_HINT,
+    AUDIO_WAITING, AUDIO_INTRO,
+    AUDIO_PHASE1_THEME,
+    AUDIO_PHASE2_STORY, AUDIO_PHASE2_THEME,
+    AUDIO_PHASE3_STORY, AUDIO_PHASE3_THEME,
+    AUDIO_VICTORY, AUDIO_WRONG, AUDIO_HINT,
     THEME_VOLUME, DUCK_VOLUME, SFX_VOLUME,
     PC1_URL, PC1_API_KEY,
 )
@@ -24,6 +27,7 @@ from pc2.config import (
 class AudioManager:
     def __init__(self):
         self._ok = False
+        self._current_theme = AUDIO_PHASE1_THEME
         if not PYGAME_OK:
             return
         try:
@@ -47,22 +51,42 @@ class AudioManager:
             print(f"[Audio] load error {path}: {e}")
             return None
 
+    # ── Theme helpers ────────────────────────────────────────────────────────────
+
+    def _start_theme(self, path):
+        if not self._ok:
+            return
+        if not os.path.exists(path):
+            print(f"[Audio] theme not found: {path}")
+            return
+        try:
+            self._current_theme = path
+            pygame.mixer.music.load(path)
+            pygame.mixer.music.set_volume(THEME_VOLUME)
+            pygame.mixer.music.play(-1)
+        except Exception as e:
+            print(f"[Audio] theme error: {e}")
+
     def _unduck(self):
         if self._ok:
             pygame.mixer.music.set_volume(THEME_VOLUME)
+
+    # ── Waiting ──────────────────────────────────────────────────────────────────
 
     def play_waiting(self):
         if not self._ok:
             return
         if not os.path.exists(AUDIO_WAITING):
-            print(f"[Audio] waiting song not found: {AUDIO_WAITING}")
+            print(f"[Audio] waiting not found: {AUDIO_WAITING}")
             return
         try:
             pygame.mixer.music.load(AUDIO_WAITING)
             pygame.mixer.music.set_volume(THEME_VOLUME)
             pygame.mixer.music.play(-1)
         except Exception as e:
-            print(f"[Audio] waiting song error: {e}")
+            print(f"[Audio] waiting error: {e}")
+
+    # ── Intro ────────────────────────────────────────────────────────────────────
 
     def play_intro(self):
         if not self._ok:
@@ -77,7 +101,7 @@ class AudioManager:
             self._on_intro_done()
 
     def _on_intro_done(self):
-        self.start_main_theme()
+        self.start_phase1_theme()
         if _requests:
             try:
                 _requests.post(
@@ -88,18 +112,53 @@ class AudioManager:
             except Exception as e:
                 print(f"[Audio] intro_done notify failed: {e}")
 
-    def start_main_theme(self):
-        if not self._ok:
+    # ── Phase themes (looping background music) ──────────────────────────────────
+
+    def start_phase1_theme(self):
+        self._start_theme(AUDIO_PHASE1_THEME)
+
+    def start_phase2_theme(self):
+        self._start_theme(AUDIO_PHASE2_THEME)
+
+    def start_phase3_theme(self):
+        self._start_theme(AUDIO_PHASE3_THEME)
+
+    # ── Phase stories (one-shot narration → auto-starts phase theme) ─────────────
+
+    def play_phase2_story(self):
+        snd = self._load(AUDIO_PHASE2_STORY)
+        if not snd:
+            self.start_phase2_theme()
             return
-        if not os.path.exists(AUDIO_MAIN_THEME):
-            print(f"[Audio] main theme not found: {AUDIO_MAIN_THEME}")
+        if self._ok:
+            pygame.mixer.music.stop()
+            self._story_ch.set_volume(SFX_VOLUME)
+            self._story_ch.play(snd)
+            threading.Timer(snd.get_length() + 1.5, self.start_phase2_theme).start()
+
+    def play_phase3_story(self):
+        snd = self._load(AUDIO_PHASE3_STORY)
+        if not snd:
+            self.start_phase3_theme()
             return
-        try:
-            pygame.mixer.music.load(AUDIO_MAIN_THEME)
-            pygame.mixer.music.set_volume(THEME_VOLUME)
-            pygame.mixer.music.play(-1)
-        except Exception as e:
-            print(f"[Audio] theme error: {e}")
+        if self._ok:
+            pygame.mixer.music.stop()
+            self._story_ch.set_volume(SFX_VOLUME)
+            self._story_ch.play(snd)
+            threading.Timer(snd.get_length() + 1.5, self.start_phase3_theme).start()
+
+    # ── Victory ──────────────────────────────────────────────────────────────────
+
+    def play_victory(self):
+        snd = self._load(AUDIO_VICTORY)
+        if not snd:
+            return
+        if self._ok:
+            pygame.mixer.music.stop()
+            self._story_ch.set_volume(SFX_VOLUME)
+            self._story_ch.play(snd)
+
+    # ── SFX (duck theme, restore after) ──────────────────────────────────────────
 
     def play_sfx(self, path):
         snd = self._load(path)
@@ -111,15 +170,7 @@ class AudioManager:
             self._sfx_ch.set_volume(SFX_VOLUME)
             self._sfx_ch.play(snd)
 
-    def play_story(self, path):
-        snd = self._load(path)
-        if not snd:
-            return
-        if self._ok:
-            pygame.mixer.music.set_volume(DUCK_VOLUME)
-            threading.Timer(snd.get_length() + 1.5, self._unduck).start()
-            self._story_ch.set_volume(SFX_VOLUME)
-            self._story_ch.play(snd)
+    # ── Utilities ─────────────────────────────────────────────────────────────────
 
     def stop_all(self):
         if not self._ok:
@@ -131,7 +182,7 @@ class AudioManager:
         if not self._ok:
             return
         if not pygame.mixer.music.get_busy():
-            self.start_main_theme()
+            self._start_theme(self._current_theme)
         else:
             pygame.mixer.music.set_volume(THEME_VOLUME)
 
