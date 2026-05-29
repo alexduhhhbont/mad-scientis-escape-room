@@ -8,7 +8,9 @@ import tkinter.messagebox
 
 from pc2.api.gm import _call_pc1
 from pc2.config import API_PORT, GM_KEY
-from pc2.gui.dialogs import FixtureManagerWindow, SceneEditorWindow, _dark_btn
+from pc2.gui.dialogs import FixtureManagerWindow
+from pc2.gui.scene_editor import SceneEditorWindow
+from pc2.gui.timeline_editor import TimelineEditorWindow
 from pc2.lighting.controller import controller
 from pc2.log import log_queue
 
@@ -142,6 +144,11 @@ class ControllerApp:
                   padx=10, pady=6, cursor="hand2",
                   activebackground="#281400").pack(side=tk.RIGHT, padx=3)
 
+        tk.Button(btn_row, text="TIMELINE EDITOR", command=self._open_timeline_editor,
+                  font=self.f_small, fg="#ff88cc", bg="#280018", relief=tk.FLAT,
+                  padx=10, pady=6, cursor="hand2",
+                  activebackground="#280018").pack(side=tk.RIGHT, padx=3)
+
         tk.Button(btn_row, text="MANAGE FIXTURES", command=self._open_fixture_manager,
                   font=self.f_small, fg="#88aaff", bg="#0a0a28", relief=tk.FLAT,
                   padx=10, pady=6, cursor="hand2",
@@ -273,6 +280,9 @@ class ControllerApp:
 
     def _open_scene_editor(self):
         SceneEditorWindow(self.root, controller)
+
+    def _open_timeline_editor(self):
+        TimelineEditorWindow(self.root)
 
     def _apply_manual(self):
         if controller.is_sequence_active():

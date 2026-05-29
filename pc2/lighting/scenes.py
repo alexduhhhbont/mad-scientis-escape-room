@@ -120,187 +120,9 @@ SCENES: dict = {
         _s(8, _OFF,        0),
     ],
 
-    # ── Intro (legacy fallback — API intercepts "intro" to start timeline) ────
-    "intro": [
-        _rb(i, intensity=255, hz=0.10, phase=i / 8) for i in range(1, 9)
-    ],
-
-    # ── Intro timeline cue scenes ─────────────────────────────────────────────
-    # Fired in sequence by pc2/lighting/timeline.py
-
-    # t=0s: pink circles through 1-4 (staggered pulse), 5-8 off
-    "intro_0": [
-        _p(1, _PINK, _ACC, hz=0.4, phase=0.00),
-        _p(2, _PINK, _ACC, hz=0.4, phase=0.25),
-        _p(3, _PINK, _ACC, hz=0.4, phase=0.50),
-        _p(4, _PINK, _ACC, hz=0.4, phase=0.75),
-        _s(5, _OFF,  0),
-        _s(6, _OFF,  0),
-        _s(7, _OFF,  0),
-        _s(8, _OFF,  0),
-    ],
-
-    # t=12s: 1-5 warm white, 6-8 off
-    "intro_12": [
-        _s(1, _WARM_WHITE, _WARM_INT),
-        _s(2, _WARM_WHITE, _WARM_INT),
-        _s(3, _WARM_WHITE, _WARM_INT),
-        _s(4, _WARM_WHITE, _WARM_INT),
-        _s(5, _WARM_WHITE, _WARM_INT),
-        _s(6, _OFF,        0),
-        _s(7, _OFF,        0),
-        _s(8, _OFF,        0),
-    ],
-
-    # t=16s: 1-6 warm white, 7-8 off
-    "intro_16": [
-        _s(1, _WARM_WHITE, _WARM_INT),
-        _s(2, _WARM_WHITE, _WARM_INT),
-        _s(3, _WARM_WHITE, _WARM_INT),
-        _s(4, _WARM_WHITE, _WARM_INT),
-        _s(5, _WARM_WHITE, _WARM_INT),
-        _s(6, _WARM_WHITE, _WARM_INT),
-        _s(7, _OFF,        0),
-        _s(8, _OFF,        0),
-    ],
-
-    # t=17s: 1-7 warm white, 8 off
-    "intro_17": [
-        _s(1, _WARM_WHITE, _WARM_INT),
-        _s(2, _WARM_WHITE, _WARM_INT),
-        _s(3, _WARM_WHITE, _WARM_INT),
-        _s(4, _WARM_WHITE, _WARM_INT),
-        _s(5, _WARM_WHITE, _WARM_INT),
-        _s(6, _WARM_WHITE, _WARM_INT),
-        _s(7, _WARM_WHITE, _WARM_INT),
-        _s(8, _OFF,        0),
-    ],
-
-    # t=18s: all 8 warm white
-    "intro_18": [
-        _s(i, _WARM_WHITE, _WARM_INT) for i in range(1, 9)
-    ],
-
-    # t=20s: 1-6 warm white; 7 green ↔ 8 pink slow alternate pulse
-    "intro_20": [
-        _s(1, _WARM_WHITE, _WARM_INT),
-        _s(2, _WARM_WHITE, _WARM_INT),
-        _s(3, _WARM_WHITE, _WARM_INT),
-        _s(4, _WARM_WHITE, _WARM_INT),
-        _s(5, _WARM_WHITE, _WARM_INT),
-        _s(6, _WARM_WHITE, _WARM_INT),
-        _p(7, _GREEN, _ACC, hz=0.25, phase=0.0),
-        _p(8, _PINK,  _ACC, hz=0.25, phase=0.5),
-    ],
-
-    # t=27s: 1-7 warm white; 8 red slow blink
-    "intro_27": [
-        _s(1, _WARM_WHITE, _WARM_INT),
-        _s(2, _WARM_WHITE, _WARM_INT),
-        _s(3, _WARM_WHITE, _WARM_INT),
-        _s(4, _WARM_WHITE, _WARM_INT),
-        _s(5, _WARM_WHITE, _WARM_INT),
-        _s(6, _WARM_WHITE, _WARM_INT),
-        _s(7, _WARM_WHITE, _WARM_INT),
-        _f(8, _RED,        _ACC, hz=0.4),
-    ],
-
-    # t=35s: 1-4 warm white; 5 yellow; 6-7 warm white; 8 aqua
-    "intro_35": [
-        _s(1, _WARM_WHITE, _WARM_INT),
-        _s(2, _WARM_WHITE, _WARM_INT),
-        _s(3, _WARM_WHITE, _WARM_INT),
-        _s(4, _WARM_WHITE, _WARM_INT),
-        _s(5, _YELLOW,     _ACC),
-        _s(6, _WARM_WHITE, _WARM_INT),
-        _s(7, _WARM_WHITE, _WARM_INT),
-        _s(8, _AQUA,       _ACC),
-    ],
-
-    # t=40s: 1-4 warm white 50%; 5 yellow; 6 green; 7 orange; 8 aqua
-    "intro_40": [
-        _s(1, _WARM_WHITE, _W50),
-        _s(2, _WARM_WHITE, _W50),
-        _s(3, _WARM_WHITE, _W50),
-        _s(4, _WARM_WHITE, _W50),
-        _s(5, _YELLOW,     _ACC),
-        _s(6, _GREEN,      _ACC),
-        _s(7, _ORANGE,     _ACC),
-        _s(8, _AQUA,       _ACC),
-    ],
-
-    # t=45s: 1-4 warm white 50%; 5 yellow 20%; 6 green 20%; 7 white 100%; 8 aqua 20%
-    "intro_45": [
-        _s(1, _WARM_WHITE, _W50),
-        _s(2, _WARM_WHITE, _W50),
-        _s(3, _WARM_WHITE, _W50),
-        _s(4, _WARM_WHITE, _W50),
-        _s(5, _YELLOW,     _W20),
-        _s(6, _GREEN,      _W20),
-        _s(7, _WHITE,      255),
-        _s(8, _AQUA,       _W20),
-    ],
-
-    # t=54s: 1-4 warm white 50%; 5-6 warm white 20%; 7 white 100%; 8 warm white 20%
-    "intro_54": [
-        _s(1, _WARM_WHITE, _W50),
-        _s(2, _WARM_WHITE, _W50),
-        _s(3, _WARM_WHITE, _W50),
-        _s(4, _WARM_WHITE, _W50),
-        _s(5, _WARM_WHITE, _W20),
-        _s(6, _WARM_WHITE, _W20),
-        _s(7, _WHITE,      255),
-        _s(8, _WARM_WHITE, _W20),
-    ],
-
-    # t=59s: same as 54s but 8 off
-    "intro_59": [
-        _s(1, _WARM_WHITE, _W50),
-        _s(2, _WARM_WHITE, _W50),
-        _s(3, _WARM_WHITE, _W50),
-        _s(4, _WARM_WHITE, _W50),
-        _s(5, _WARM_WHITE, _W20),
-        _s(6, _WARM_WHITE, _W20),
-        _s(7, _WHITE,      255),
-        _s(8, _OFF,        0),
-    ],
-
-    # t=59.5s: 5 off, 6 warm white 20%, 7 white 100%, 8 off
-    "intro_59_5": [
-        _s(1, _WARM_WHITE, _W50),
-        _s(2, _WARM_WHITE, _W50),
-        _s(3, _WARM_WHITE, _W50),
-        _s(4, _WARM_WHITE, _W50),
-        _s(5, _OFF,        0),
-        _s(6, _WARM_WHITE, _W20),
-        _s(7, _WHITE,      255),
-        _s(8, _OFF,        0),
-    ],
-
-    # t=60s: 1-4 warm white 50%; 5-6 off; 7 fast rainbow; 8 off
-    "intro_60": [
-        _s(1, _WARM_WHITE, _W50),
-        _s(2, _WARM_WHITE, _W50),
-        _s(3, _WARM_WHITE, _W50),
-        _s(4, _WARM_WHITE, _W50),
-        _s(5, _OFF,        0),
-        _s(6, _OFF,        0),
-        _rb(7, intensity=_ACC, hz=0.6),
-        _s(8, _OFF,        0),
-    ],
-
-    # t=66s: 1-4 warm white 50%; 5-6 green; 7 warm white; 8 green
-    # (start of 4s fade to phase1)
-    "intro_66": [
-        _s(1, _WARM_WHITE, _W50),
-        _s(2, _WARM_WHITE, _W50),
-        _s(3, _WARM_WHITE, _W50),
-        _s(4, _WARM_WHITE, _W50),
-        _s(5, _GREEN,      _ACC),
-        _s(6, _GREEN,      _ACC),
-        _s(7, _WARM_WHITE, _WARM_INT),
-        _s(8, _GREEN,      _ACC),
-    ],
+    # ── Intro ─────────────────────────────────────────────────────────────────
+    # The intro is now a time-based cue sequence; see the default "intro"
+    # Timeline in pc2/lighting/timelines.py (editable via the Timeline Editor).
 
     # ── Persistent rainbow (used after victory) ───────────────────────────────
     "rainbow": [
@@ -395,81 +217,16 @@ SCENES: dict = {
 }
 
 # ── Editable scene support ────────────────────────────────────────────────────
-# The four phase scenes below can be edited via the Scene Editor GUI and
-# are persisted to scene_overrides.json next to the project root.
-
-SCENE_COLORS: dict = {
-    "Off":        (  0,   0,   0),
-    "Warm White": (255, 160,  60),
-    "White":      (255, 255, 255),
-    "Red":        (255,   0,   0),
-    "Green":      (  0, 220,  60),
-    "Blue":       (  0,  60, 255),
-    "Purple":     (160,   0, 220),
-    "Pink":       (255,   0, 140),
-    "Yellow":     (255, 190,   0),
-    "Orange":     (255, 120,   0),
-    "Aqua":       (  0, 200, 180),
-}
-
-# effect name → (anim_type, frequency_hz)
-SCENE_EFFECTS: dict = {
-    "Static":     ("static",  0.0),
-    "Flash Slow": ("flash",   0.5),
-    "Flash Fast": ("flash",   4.0),
-    "Pulse Slow": ("pulse",   0.3),
-    "Pulse Fast": ("pulse",   1.2),
-    "Candle":     ("candle",  0.0),
-    "Rainbow":    ("rainbow", 0.08),
-}
+# The phase scenes below can be edited via the Scene Editor GUI and are
+# persisted to scene_overrides.json next to the project root. The colour/effect
+# palettes and FixtureAnim ⇄ editable conversion helpers live in
+# pc2/lighting/editable.py and are re-exported at the bottom of this module.
 
 _EDITABLE_PHASES = ("waiting", "phase1", "phase2", "phase3", "victory_green")
 _OVERRIDES_FILE  = Path(__file__).parent.parent.parent / "scene_overrides.json"
 
 # Factory defaults — captured once before any overrides are applied
 _DEFAULT_PHASE_SCENES: dict = {k: copy.deepcopy(SCENES[k]) for k in _EDITABLE_PHASES}
-
-
-def _closest_color_name(r: int, g: int, b: int) -> str:
-    best, best_d = "Off", float("inf")
-    for name, (cr, cg, cb) in SCENE_COLORS.items():
-        d = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2
-        if d < best_d:
-            best_d, best = d, name
-    return best
-
-
-def _closest_effect_name(anim_type: str, hz: float) -> str:
-    if anim_type == "static":  return "Static"
-    if anim_type == "candle":  return "Candle"
-    if anim_type == "rainbow": return "Rainbow"
-    if anim_type == "flash":   return "Flash Slow" if hz <= 1.0 else "Flash Fast"
-    if anim_type == "pulse":   return "Pulse Slow" if hz <= 0.6 else "Pulse Fast"
-    return "Static"
-
-
-def fixture_anim_to_editable(anim: "FixtureAnim") -> tuple:
-    """Return (color_name, effect_name, opacity_pct) for a FixtureAnim."""
-    return (
-        _closest_color_name(anim.r, anim.g, anim.b),
-        _closest_effect_name(anim.anim_type, anim.frequency_hz),
-        round(anim.intensity / 255 * 100),
-    )
-
-
-def editable_to_fixture_anim(fixture_id: int, color: str, effect: str,
-                              opacity: int, stagger_idx: int = 0) -> "FixtureAnim":
-    """Build a FixtureAnim from Scene Editor values."""
-    r, g, b       = SCENE_COLORS.get(color, (0, 0, 0))
-    anim_type, hz = SCENE_EFFECTS.get(effect, ("static", 0.0))
-    return FixtureAnim(
-        fixture_id   = fixture_id,
-        anim_type    = anim_type,
-        r=r, g=g, b=b,
-        intensity    = round(opacity / 100 * 255),
-        frequency_hz = hz if hz > 0 else 1.0,
-        phase_offset = stagger_idx / 8,
-    )
 
 
 def reset_scene_to_defaults(phase: str) -> None:
@@ -514,3 +271,13 @@ def load_scene_overrides() -> None:
             ]
     except Exception as exc:
         print(f"[scenes] Failed to load overrides: {exc}")
+
+
+# ── Re-exports ──────────────────────────────────────────────────────────────────
+# Imported at the bottom (after FixtureAnim is defined) to avoid a circular
+# import: editable.py imports FixtureAnim from this module. Kept here so existing
+# callers can still import these names from pc2.lighting.scenes.
+from pc2.lighting.editable import (  # noqa: E402
+    SCENE_COLORS, SCENE_EFFECTS,
+    fixture_anim_to_editable, editable_to_fixture_anim,
+)

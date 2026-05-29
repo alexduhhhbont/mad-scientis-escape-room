@@ -19,11 +19,13 @@ from pc2.config import API_PORT, GM_KEY
 from pc2.dmx.streamer import dmx_streaming_loop
 from pc2.gui.app import ControllerApp
 from pc2.lighting.scenes import load_scene_overrides
+from pc2.lighting.timelines import load_timeline_overrides
 from pc2.log import log_queue
 
 
 def main():
     load_scene_overrides()
+    load_timeline_overrides()   # after scenes, so live scene_ref cues resolve overrides
 
     # Thread 2: FastAPI web server (PC1 events + GM phone panel)
     threading.Thread(target=run_server, daemon=True, name="api-server").start()

@@ -17,7 +17,6 @@ from pc2.log import log_queue
 # duration=0 means permanent; restore="" means no restore; fade=0 means hard cut.
 _SCENE_ACTIONS: dict = {
     "waiting":        ("waiting",        0,   "",        2.0),
-    "intro":          ("intro",          0,   "",        2.0),
     "rainbow":        ("rainbow",        0,   "",        2.0),
     "phase1":         ("phase1",         0,   "",        2.0),
     "phase2":         ("phase2",         0,   "",        2.0),
@@ -280,6 +279,12 @@ def gm_lights(action: str):
         controller.blackout()
         log_queue.put("GM lights/blackout")
         return {"msg": "⬛ blackout"}
+
+    if action == "intro":
+        from pc2.lighting.timeline import start_intro_timeline
+        start_intro_timeline()
+        log_queue.put("GM lights/intro → timeline started")
+        return {"msg": "🌈 intro timeline"}
 
     entry = _SCENE_ACTIONS.get(action)
     if entry is None:

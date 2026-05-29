@@ -101,6 +101,25 @@ def lights_scene(payload: ScenePayload):
     return {"status": "ok", "scene": payload.name}
 
 
+class TimelinePayload(BaseModel):
+    name: str            = "intro"
+    loop: Optional[bool] = None   # None = use the timeline's saved loop setting
+
+
+@app.post("/lights/timeline", dependencies=[Depends(require_api_key)])
+def lights_timeline(payload: TimelinePayload):
+    from pc2.lighting.timelines import TIMELINES, timeline_player
+
+    tl = TIMELINES.get(payload.name)
+    if tl is None:
+        raise HTTPException(status_code=404, detail=f"Unknown timeline: {payload.name}")
+    if payload.loop is not None:
+        tl.loop = payload.loop
+    timeline_player.start(tl)
+    log_queue.put(f"API /lights/timeline → {payload.name} (loop={tl.loop})")
+    return {"status": "ok", "timeline": payload.name, "loop": tl.loop}
+
+
 @app.get("/status")
 def status():
     return controller.get_status()
