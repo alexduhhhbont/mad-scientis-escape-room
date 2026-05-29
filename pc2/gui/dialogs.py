@@ -4,6 +4,12 @@ import tkinter.messagebox
 import uuid as _uuid
 from typing import Optional
 
+from pc2.lighting.scenes import (
+    SCENE_COLORS, SCENE_EFFECTS, _EDITABLE_PHASES,
+    fixture_anim_to_editable, editable_to_fixture_anim,
+    reset_scene_to_defaults, save_scene_overrides, SCENES,
+)
+
 from pc2.config import CHANNEL_ROLES
 from pc2.fixtures.library import fixture_library
 from pc2.fixtures.models import FixtureChannel, FixtureType, FixtureInstance
@@ -368,3 +374,217 @@ class FixtureManagerWindow:
                                        parent=self._win):
             fixture_library.delete_instance(inst.id)
             self._refresh()
+
+
+# ── Scene Editor ──────────────────────────────────────────────────────────────
+
+def _style_option_menu(menu: tk.OptionMenu, font):
+    menu.config(bg="#1e1e1e", fg="#ffffff", activebackground="#2a2a2a",
+                activeforeground="#ffffff", font=font, relief=tk.FLAT,
+                highlightthickness=0, bd=0, indicatoron=True)
+    menu["menu"].config(bg="#1e1e1e", fg="#ffffff", font=font,
+                        activebackground="#333333", activeforeground="#ffffff")
+
+
+_PHASE_LABELS = {
+    "waiting":       "🌙 Waiting",
+    "phase1":        "🔑 Phase 1",
+    "phase2":        "🔧 Phase 2",
+    "phase3":        "🏭 Phase 3",
+    "victory_green": "🏆 Victory",
+}
+
+_COLOR_SWATCHES = {
+    name: "#{:02x}{:02x}{:02x}".format(*rgb)
+    for name, rgb in SCENE_COLORS.items()
+}
+
+
+class SceneEditorWindow:
+    """GUI for editing per-fixture colors, effects, and opacity of phase scenes."""
+
+    def __init__(self, parent: tk.Tk, controller):
+        self._controller = controller
+
+        win = tk.Toplevel(parent)
+        win.title("Scene Editor")
+        win.configure(bg="#111111")
+        win.geometry("800x500")
+        win.resizable(True, True)
+        win.minsize(720, 420)
+        self._win = win
+
+        self._fs = tkfont.Font(family="Courier", size=9)
+        self._fm = tkfont.Font(family="Courier", size=10, weight="bold")
+
+        self._color_names  = list(SCENE_COLORS.keys())
+        self._effect_names = list(SCENE_EFFECTS.keys())
+
+        # {phase: [(fixture_id, color_var, effect_var, opacity_var, swatch_lbl), ...]}
+        self._rows: dict = {}
+        # content frames, one per phase
+        self._frames: dict = {}
+        self._active_phase = ""
+        self._tab_btns: dict = {}
+
+        self._build_ui()
+
+    def _build_ui(self):
+        fs, fm = self._fs, self._fm
+
+        # ── Tab row ──────────────────────────────────────────────────────────
+        tab_bar = tk.Frame(self._win, bg="#1a1a1a", pady=2)
+        tab_bar.pack(fill=tk.X)
+        for phase in _EDITABLE_PHASES:
+            btn = tk.Button(
+                tab_bar, text=_PHASE_LABELS[phase],
+                command=lambda p=phase: self._switch_tab(p),
+                font=fm, relief=tk.FLAT, padx=14, pady=8, cursor="hand2",
+                bg="#1a1a1a", fg="#666666",
+                activebackground="#2a2a2a", activeforeground="#ffd700",
+            )
+            btn.pack(side=tk.LEFT, padx=1)
+            self._tab_btns[phase] = btn
+
+        # ── Content area (one frame per phase, swapped in/out) ───────────────
+        self._content_host = tk.Frame(self._win, bg="#111111")
+        self._content_host.pack(fill=tk.BOTH, expand=True)
+
+        for phase in _EDITABLE_PHASES:
+            f = tk.Frame(self._content_host, bg="#111111")
+            self._frames[phase] = f
+            self._build_phase_content(f, phase)
+
+        # ── Bottom button bar ─────────────────────────────────────────────────
+        bar = tk.Frame(self._win, bg="#1a1a1a", pady=7)
+        bar.pack(fill=tk.X, side=tk.BOTTOM)
+
+        _dark_btn(bar, "▶  APPLY NOW", self._apply,
+                  fg="#000000", bg="#00cc33", font=fm).pack(side=tk.LEFT, padx=(10, 4))
+        _dark_btn(bar, "💾  SAVE", self._save,
+                  fg="#000000", bg="#ffaa00", font=fm).pack(side=tk.LEFT, padx=4)
+        _dark_btn(bar, "↺  RESET TAB", self._reset_tab,
+                  fg="#ff6666", bg="#2a0000", font=fm).pack(side=tk.LEFT, padx=4)
+        _dark_btn(bar, "CLOSE", self._win.destroy,
+                  fg="#888888", bg="#222222", font=fm).pack(side=tk.RIGHT, padx=10)
+
+        self._switch_tab("waiting")
+
+    def _build_phase_content(self, parent: tk.Frame, phase: str):
+        fs = self._fs
+
+        # Column headers
+        hdr = tk.Frame(parent, bg="#1a1a1a", padx=10, pady=5)
+        hdr.pack(fill=tk.X)
+        for text, w in [("Fixture", 10), ("Color", 15), ("", 3),
+                        ("Effect", 14), ("Opacity", 20)]:
+            tk.Label(hdr, text=text, fg="#555555", bg="#1a1a1a",
+                     font=fs, width=w, anchor="w").pack(side=tk.LEFT)
+
+        # Scrollable fixture list
+        canvas = tk.Canvas(parent, bg="#111111", highlightthickness=0)
+        sb = tk.Scrollbar(parent, orient="vertical", command=canvas.yview,
+                          bg="#1a1a1a", troughcolor="#111111")
+        inner = tk.Frame(canvas, bg="#111111")
+        inner.bind("<Configure>",
+                   lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=inner, anchor="nw")
+        canvas.configure(yscrollcommand=sb.set)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(6, 0), pady=4)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+
+        rows = []
+        for i, anim in enumerate(SCENES.get(phase, [])):
+            color_name, effect_name, opacity = fixture_anim_to_editable(anim)
+            row_bg = "#111111" if i % 2 == 0 else "#161616"
+
+            row = tk.Frame(inner, bg=row_bg)
+            row.pack(fill=tk.X, pady=1, padx=4)
+
+            tk.Label(row, text=f"Fixture {anim.fixture_id}",
+                     fg="#888888", bg=row_bg, font=fs, width=10,
+                     anchor="w").pack(side=tk.LEFT, padx=(6, 2))
+
+            color_var = tk.StringVar(value=color_name)
+            color_menu = tk.OptionMenu(row, color_var, *self._color_names)
+            _style_option_menu(color_menu, fs)
+            color_menu.config(width=12)
+            color_menu.pack(side=tk.LEFT, padx=(0, 4))
+
+            # Color swatch
+            swatch = tk.Label(row, bg=_COLOR_SWATCHES.get(color_name, "#000000"),
+                              width=2, relief=tk.FLAT)
+            swatch.pack(side=tk.LEFT, padx=(0, 8), ipady=10)
+
+            effect_var = tk.StringVar(value=effect_name)
+            effect_menu = tk.OptionMenu(row, effect_var, *self._effect_names)
+            _style_option_menu(effect_menu, fs)
+            effect_menu.config(width=11)
+            effect_menu.pack(side=tk.LEFT, padx=(0, 8))
+
+            opacity_var = tk.IntVar(value=opacity)
+            scale = tk.Scale(
+                row, variable=opacity_var, from_=0, to=100,
+                orient=tk.HORIZONTAL, bg="#111111", fg="#aaaaaa",
+                highlightthickness=0, troughcolor="#2a2a2a",
+                activebackground="#ffaa00", length=140, showvalue=False,
+                relief=tk.FLAT,
+            )
+            scale.pack(side=tk.LEFT)
+            tk.Label(row, textvariable=opacity_var, fg="#aaaaaa",
+                     bg=row_bg, font=fs, width=4).pack(side=tk.LEFT)
+            tk.Label(row, text="%", fg="#555555",
+                     bg=row_bg, font=fs).pack(side=tk.LEFT)
+
+            # Live swatch update when color changes
+            color_var.trace_add("write",
+                lambda *_, cv=color_var, sw=swatch:
+                    sw.config(bg=_COLOR_SWATCHES.get(cv.get(), "#000000")))
+
+            rows.append((anim.fixture_id, color_var, effect_var, opacity_var))
+
+        self._rows[phase] = rows
+
+    def _switch_tab(self, phase: str):
+        if self._active_phase:
+            self._frames[self._active_phase].pack_forget()
+        self._frames[phase].pack(fill=tk.BOTH, expand=True)
+        self._active_phase = phase
+        for p, btn in self._tab_btns.items():
+            btn.config(bg="#2a2a2a" if p == phase else "#1a1a1a",
+                       fg="#ffd700" if p == phase else "#666666")
+
+    def _build_anims(self, phase: str) -> list:
+        return [
+            editable_to_fixture_anim(
+                fid, cv.get(), ev.get(), ov.get(), stagger_idx=i
+            )
+            for i, (fid, cv, ev, ov) in enumerate(self._rows.get(phase, []))
+        ]
+
+    def _apply(self):
+        phase = self._active_phase
+        anims = self._build_anims(phase)
+        SCENES[phase] = anims
+        self._controller.set_scene(list(anims), duration=0, restore="", fade_sec=2.0)
+
+    def _save(self):
+        for phase in _EDITABLE_PHASES:
+            SCENES[phase] = self._build_anims(phase)
+        save_scene_overrides()
+        tkinter.messagebox.showinfo("Saved",
+            "Scene overrides saved to scene_overrides.json.", parent=self._win)
+
+    def _reset_tab(self):
+        phase = self._active_phase
+        if not tkinter.messagebox.askyesno(
+            "Reset", f"Reset {_PHASE_LABELS[phase]} to factory defaults?",
+            parent=self._win
+        ):
+            return
+        reset_scene_to_defaults(phase)
+        # Rebuild the rows for this tab
+        for w in self._frames[phase].winfo_children():
+            w.destroy()
+        self._rows.pop(phase, None)
+        self._build_phase_content(self._frames[phase], phase)

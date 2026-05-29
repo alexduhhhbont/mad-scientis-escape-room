@@ -1,5 +1,7 @@
 """
 Per-fixture scene definitions for the escape room.
+Editable phase scenes (waiting / phase1 / phase2 / phase3) can be overridden at
+runtime via the Scene Editor GUI and are persisted to scene_overrides.json.
 
 Fixture layout (8 fixtures):
   1-4  "warm" group — always warm white during gameplay
@@ -14,8 +16,11 @@ Animation types:
 """
 
 import colorsys
+import copy
+import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 # ── Colour palette ────────────────────────────────────────────────────────────
 _WARM_WHITE = (255, 160,  60)
@@ -70,6 +75,15 @@ def render_fixture_anim(anim: FixtureAnim, t: float) -> tuple:
         hue     = (t * anim.frequency_hz + anim.phase_offset) % 1.0
         r, g, b = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
         return (int(r * 255), int(g * 255), int(b * 255), anim.intensity)
+
+    if anim.anim_type == "candle":
+        phase = anim.phase_offset * 6.283
+        flicker = (
+            math.sin(2 * math.pi * 1.37 * t + phase) * 0.25 +
+            math.sin(2 * math.pi * 2.71 * t + phase * 1.7) * 0.15 +
+            1.0
+        ) / 1.4
+        return (anim.r, anim.g, anim.b, int(anim.intensity * max(0.0, min(1.0, flicker))))
 
     return (anim.r, anim.g, anim.b, anim.intensity)
 
@@ -379,3 +393,124 @@ SCENES: dict = {
         _s(8, _GREEN, 255),
     ],
 }
+
+# ── Editable scene support ────────────────────────────────────────────────────
+# The four phase scenes below can be edited via the Scene Editor GUI and
+# are persisted to scene_overrides.json next to the project root.
+
+SCENE_COLORS: dict = {
+    "Off":        (  0,   0,   0),
+    "Warm White": (255, 160,  60),
+    "White":      (255, 255, 255),
+    "Red":        (255,   0,   0),
+    "Green":      (  0, 220,  60),
+    "Blue":       (  0,  60, 255),
+    "Purple":     (160,   0, 220),
+    "Pink":       (255,   0, 140),
+    "Yellow":     (255, 190,   0),
+    "Orange":     (255, 120,   0),
+    "Aqua":       (  0, 200, 180),
+}
+
+# effect name → (anim_type, frequency_hz)
+SCENE_EFFECTS: dict = {
+    "Static":     ("static",  0.0),
+    "Flash Slow": ("flash",   0.5),
+    "Flash Fast": ("flash",   4.0),
+    "Pulse Slow": ("pulse",   0.3),
+    "Pulse Fast": ("pulse",   1.2),
+    "Candle":     ("candle",  0.0),
+    "Rainbow":    ("rainbow", 0.08),
+}
+
+_EDITABLE_PHASES = ("waiting", "phase1", "phase2", "phase3", "victory_green")
+_OVERRIDES_FILE  = Path(__file__).parent.parent.parent / "scene_overrides.json"
+
+# Factory defaults — captured once before any overrides are applied
+_DEFAULT_PHASE_SCENES: dict = {k: copy.deepcopy(SCENES[k]) for k in _EDITABLE_PHASES}
+
+
+def _closest_color_name(r: int, g: int, b: int) -> str:
+    best, best_d = "Off", float("inf")
+    for name, (cr, cg, cb) in SCENE_COLORS.items():
+        d = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2
+        if d < best_d:
+            best_d, best = d, name
+    return best
+
+
+def _closest_effect_name(anim_type: str, hz: float) -> str:
+    if anim_type == "static":  return "Static"
+    if anim_type == "candle":  return "Candle"
+    if anim_type == "rainbow": return "Rainbow"
+    if anim_type == "flash":   return "Flash Slow" if hz <= 1.0 else "Flash Fast"
+    if anim_type == "pulse":   return "Pulse Slow" if hz <= 0.6 else "Pulse Fast"
+    return "Static"
+
+
+def fixture_anim_to_editable(anim: "FixtureAnim") -> tuple:
+    """Return (color_name, effect_name, opacity_pct) for a FixtureAnim."""
+    return (
+        _closest_color_name(anim.r, anim.g, anim.b),
+        _closest_effect_name(anim.anim_type, anim.frequency_hz),
+        round(anim.intensity / 255 * 100),
+    )
+
+
+def editable_to_fixture_anim(fixture_id: int, color: str, effect: str,
+                              opacity: int, stagger_idx: int = 0) -> "FixtureAnim":
+    """Build a FixtureAnim from Scene Editor values."""
+    r, g, b       = SCENE_COLORS.get(color, (0, 0, 0))
+    anim_type, hz = SCENE_EFFECTS.get(effect, ("static", 0.0))
+    return FixtureAnim(
+        fixture_id   = fixture_id,
+        anim_type    = anim_type,
+        r=r, g=g, b=b,
+        intensity    = round(opacity / 100 * 255),
+        frequency_hz = hz if hz > 0 else 1.0,
+        phase_offset = stagger_idx / 8,
+    )
+
+
+def reset_scene_to_defaults(phase: str) -> None:
+    """Restore a phase scene to its hardcoded factory defaults."""
+    if phase in _DEFAULT_PHASE_SCENES:
+        SCENES[phase] = copy.deepcopy(_DEFAULT_PHASE_SCENES[phase])
+
+
+def save_scene_overrides() -> None:
+    """Persist all editable phase scenes to scene_overrides.json."""
+    data = {}
+    for phase in _EDITABLE_PHASES:
+        data[phase] = []
+        for a in SCENES.get(phase, []):
+            color, effect, opacity = fixture_anim_to_editable(a)
+            data[phase].append({
+                "fixture_id": a.fixture_id,
+                "color":      color,
+                "effect":     effect,
+                "opacity":    opacity,
+            })
+    with open(_OVERRIDES_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def load_scene_overrides() -> None:
+    """Load scene_overrides.json and apply to the live SCENES dict."""
+    if not _OVERRIDES_FILE.exists():
+        return
+    try:
+        with open(_OVERRIDES_FILE) as f:
+            data = json.load(f)
+        for phase, entries in data.items():
+            if phase not in _EDITABLE_PHASES:
+                continue
+            SCENES[phase] = [
+                editable_to_fixture_anim(
+                    e["fixture_id"], e["color"], e["effect"], e["opacity"],
+                    stagger_idx=i,
+                )
+                for i, e in enumerate(entries)
+            ]
+    except Exception as exc:
+        print(f"[scenes] Failed to load overrides: {exc}")
