@@ -1,5 +1,5 @@
 # ─── Game ───────────────────────────────────────────
-PASSWORD        = "CHAOS42"
+PASSWORD        = "SUIKER247"
 ADMIN_COMBO     = "<Control-Shift-Alt-q>"
 TITLE           = "WONKY'S SNOEPFABRIEK CONTROLESYSTEEM v1.0"
 
