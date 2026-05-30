@@ -44,3 +44,44 @@
 [PC1] key char='4' keysym=4
 [PC1] key char='7' keysym=7
 [PC1] key char='\r' keysym=Return
+[PC1 API] starting uvicorn (attempt 1)
+[PC1→PC2] audio/waiting → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] lights/scene FAILED: HTTPConnectionPool(host='10.0.0.108', port=8000): Max retries exceeded with url: /lights/scene (Caused by ConnectTimeoutError(<HTTPConnection(host='10.0.0.108', port=8000) at 0x718ac2418770>, 'Connection to 10.0.0.108 timed out. (connect timeout=1.0)'))
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/phase3_story → 200
+[PC1 API] starting uvicorn (attempt 1)
+[PC1→PC2] audio/waiting FAILED: HTTPConnectionPool(host='10.0.0.108', port=8000): Max retries exceeded with url: /audio/waiting (Caused by ConnectTimeoutError(<HTTPConnection(host='10.0.0.108', port=8000) at 0x7fc068f39f70>, 'Connection to 10.0.0.108 timed out. (connect timeout=1.0)'))
+[PC1→PC2] lights/scene FAILED: HTTPConnectionPool(host='10.0.0.108', port=8000): Max retries exceeded with url: /lights/scene (Caused by ConnectTimeoutError(<HTTPConnection(host='10.0.0.108', port=8000) at 0x7fc068f3a210>, 'Connection to 10.0.0.108 timed out. (connect timeout=1.0)'))
+[PC1] quit sequence entered
+[PC1] admin quit triggered (Ctrl+Shift+Alt+Q)
+[PC1] mainloop returned cleanly (root.destroy or root.quit called)
+[PC1] process terminating
+[PC1 API] starting uvicorn (attempt 1)
+[PC1→PC2] audio/waiting → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/intro → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/wrong → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/wrong → 200
+[PC1→PC2] lights/scene FAILED: HTTPConnectionPool(host='10.0.0.108', port=8000): Max retries exceeded with url: /lights/scene (Caused by ConnectTimeoutError(<HTTPConnection(host='10.0.0.108', port=8000) at 0x724743f78770>, 'Connection to 10.0.0.108 timed out. (connect timeout=1.0)'))
+[PC1→PC2] audio/phase2_story FAILED: HTTPConnectionPool(host='10.0.0.108', port=8000): Max retries exceeded with url: /audio/phase2_story (Caused by ConnectTimeoutError(<HTTPConnection(host='10.0.0.108', port=8000) at 0x724743f78350>, 'Connection to 10.0.0.108 timed out. (connect timeout=1.0)'))
+[PC1→PC2] lights/scene FAILED: HTTPConnectionPool(host='10.0.0.108', port=8000): Max retries exceeded with url: /lights/scene (Caused by ConnectTimeoutError(<HTTPConnection(host='10.0.0.108', port=8000) at 0x724743f7a510>, 'Connection to 10.0.0.108 timed out. (connect timeout=1.0)'))
+[PC1] quit sequence entered
+[PC1] admin quit triggered (Ctrl+Shift+Alt+Q)
+[PC1] mainloop returned cleanly (root.destroy or root.quit called)
+[PC1] process terminating
+[PC1 API] starting uvicorn (attempt 1)
+[PC1→PC2] audio/waiting → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/intro → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/phase2_story → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/phase3_story → 200
+[PC1→PC2] audio/victory → 200
+[PC1→PC2] lights/scene → 200

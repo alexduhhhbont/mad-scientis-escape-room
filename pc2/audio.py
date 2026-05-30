@@ -1,4 +1,5 @@
 import os
+import time
 import threading
 
 try:
@@ -125,6 +126,16 @@ class AudioManager:
 
     # ── Phase stories (one-shot narration → auto-starts phase theme) ─────────────
 
+    def _play_story_then(self, snd, callback):
+        self._story_ch.set_volume(SFX_VOLUME)
+        self._story_ch.play(snd)
+        def _wait():
+            while self._story_ch.get_busy():
+                time.sleep(0.1)
+            time.sleep(1.5)
+            callback()
+        threading.Thread(target=_wait, daemon=True).start()
+
     def play_phase2_story(self):
         snd = self._load(AUDIO_PHASE2_STORY)
         if not snd:
@@ -132,9 +143,7 @@ class AudioManager:
             return
         if self._ok:
             pygame.mixer.music.stop()
-            self._story_ch.set_volume(SFX_VOLUME)
-            self._story_ch.play(snd)
-            threading.Timer(snd.get_length() + 1.5, self.start_phase2_theme).start()
+            self._play_story_then(snd, self.start_phase2_theme)
 
     def play_phase3_story(self):
         snd = self._load(AUDIO_PHASE3_STORY)
@@ -143,9 +152,7 @@ class AudioManager:
             return
         if self._ok:
             pygame.mixer.music.stop()
-            self._story_ch.set_volume(SFX_VOLUME)
-            self._story_ch.play(snd)
-            threading.Timer(snd.get_length() + 1.5, self.start_phase3_theme).start()
+            self._play_story_then(snd, self.start_phase3_theme)
 
     # ── Victory ──────────────────────────────────────────────────────────────────
 

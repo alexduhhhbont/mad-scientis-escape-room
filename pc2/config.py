@@ -32,7 +32,7 @@ AUDIO_PHASE2_STORY  = os.path.join(AUDIO_DIR, "phase2_story.mp3")
 AUDIO_PHASE2_THEME  = os.path.join(AUDIO_DIR, "phase2_theme.mp3")
 AUDIO_PHASE3_STORY  = os.path.join(AUDIO_DIR, "phase3_story.mp3")
 AUDIO_PHASE3_THEME  = os.path.join(AUDIO_DIR, "phase3_theme.mp3")
-AUDIO_VICTORY       = os.path.join(AUDIO_DIR, "victory.wav")
+AUDIO_VICTORY       = os.path.join(AUDIO_DIR, "victory.mp3")
 AUDIO_WRONG         = os.path.join(AUDIO_DIR, "wrong.mp3")
 AUDIO_HINT          = os.path.join(AUDIO_DIR, "hint.wav")
 
