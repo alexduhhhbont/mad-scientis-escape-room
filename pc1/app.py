@@ -39,11 +39,8 @@ class EscapeRoomApp:
         self.root.bind("<Super_R>",  lambda e: "break")
         self.root.bind(ADMIN_COMBO, self._admin_quit)
 
-        self._f12_presses  = 0
-        self._f12_timer    = None
-        self._f12_released = True
-        self.root.bind("<F12>",            self._f12_quit)
-        self.root.bind("<KeyRelease-F12>", self._f12_release)
+        self._quit_sequence = ""
+        self.root.bind("<Key>", self._check_quit_sequence)
 
         self.stage            = "waiting"
         self.attempt_count    = 0
@@ -766,25 +763,12 @@ class EscapeRoomApp:
         notify_pc2("lights/blackout", {})
         self.root.destroy()
 
-    def _f12_release(self, event=None):
-        self._f12_released = True
+    _QUIT_SEQ = "1234567"
 
-    def _f12_quit(self, event=None):
-        if not self._f12_released:
-            return   # auto-repeat, ignore
-        self._f12_released = False
-        self._f12_presses += 1
-        print(f"[PC1] F12 press #{self._f12_presses}", flush=True)
-        if self._f12_timer:
-            self.root.after_cancel(self._f12_timer)
-        if self._f12_presses >= 3:
-            print("[PC1] F12×3 quit triggered", flush=True)
-            notify_pc2("audio/stop", {})
-            notify_pc2("lights/blackout", {})
-            self.root.destroy()
-        else:
-            self._f12_timer = self.root.after(1500, self._reset_f12)
-
-    def _reset_f12(self):
-        self._f12_presses = 0
-        self._f12_timer   = None
+    def _check_quit_sequence(self, event):
+        if event.char:
+            self._quit_sequence = (self._quit_sequence + event.char)[-len(self._QUIT_SEQ):]
+            if self._quit_sequence == self._QUIT_SEQ:
+                print("[PC1] quit sequence entered", flush=True)
+                self._quit_sequence = ""
+                self._admin_quit()
