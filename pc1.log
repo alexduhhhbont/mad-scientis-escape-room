@@ -1,7 +1,14 @@
 [PC1 API] starting uvicorn (attempt 1)
-[PC1] F12 press #1
-[PC1] F12 press #2
-[PC1] F12 press #3
-[PC1] F12×3 quit triggered
+[PC1] key char='1' keysym=1
+[PC1] key char='2' keysym=2
+[PC1] key char='3' keysym=3
+[PC1] key char='4' keysym=4
+[PC1] key char='5' keysym=5
+[PC1] key char='6' keysym=6
+[PC1] key char='7' keysym=7
+[PC1] quit sequence entered
+[PC1] admin quit triggered (Ctrl+Shift+Alt+Q)
 [PC1] mainloop returned cleanly (root.destroy or root.quit called)
 [PC1] process terminating
+[200~python: command not found
+[PC1 API] starting uvicorn (attempt 1)

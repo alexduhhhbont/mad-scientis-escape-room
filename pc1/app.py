@@ -16,20 +16,23 @@ from pc1.widgets import GlitchLabel, ScanlineCanvas
 
 
 class EscapeRoomApp:
-    def __init__(self, root: tk.Tk):
+    def __init__(self, root: tk.Tk, windowed: bool = False):
         self.root  = root
         self.root.title(TITLE)
         self.root.configure(bg=BG)
 
-        self.root.attributes("-fullscreen", True)
-        self.root.resizable(False, False)
-        self.root.geometry("{0}x{1}+0+0".format(
-            self.root.winfo_screenwidth(),
-            self.root.winfo_screenheight(),
-        ))
-        self.root.attributes("-topmost", True)
-        self.root.focus_force()
-        self.root.lift()
+        if windowed:
+            self.root.geometry("1280x720")
+        else:
+            self.root.attributes("-fullscreen", True)
+            self.root.resizable(False, False)
+            self.root.geometry("{0}x{1}+0+0".format(
+                self.root.winfo_screenwidth(),
+                self.root.winfo_screenheight(),
+            ))
+            self.root.attributes("-topmost", True)
+            self.root.focus_force()
+            self.root.lift()
 
         self.root.protocol("WM_DELETE_WINDOW", lambda: None)
         self.root.bind("<Alt-F4>",   lambda e: "break")
@@ -767,6 +770,7 @@ class EscapeRoomApp:
 
     def _check_quit_sequence(self, event):
         if event.char:
+            print(f"[PC1] key char={repr(event.char)} keysym={event.keysym}", flush=True)
             self._quit_sequence = (self._quit_sequence + event.char)[-len(self._QUIT_SEQ):]
             if self._quit_sequence == self._QUIT_SEQ:
                 print("[PC1] quit sequence entered", flush=True)

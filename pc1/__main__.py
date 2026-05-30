@@ -21,6 +21,8 @@ from pc1.api import run_api_server, set_game_app
 from pc1.app import EscapeRoomApp
 from pc1.config import PC1_API_PORT
 
+windowed = "--window" in sys.argv
+
 
 def _api_watchdog():
     attempt = 0
@@ -53,7 +55,7 @@ def main():
     # Log all Tkinter callback exceptions instead of silently swallowing them
     root.report_callback_exception = _tk_exception_handler
 
-    app = EscapeRoomApp(root)
+    app = EscapeRoomApp(root, windowed=windowed)
     set_game_app(app)
 
     try:
