@@ -1,0 +1,7 @@
+[PC1 API] starting uvicorn (attempt 1)
+[PC1] F12 press #1
+[PC1] F12 press #2
+[PC1] F12 press #3
+[PC1] F12×3 quit triggered
+[PC1] mainloop returned cleanly (root.destroy or root.quit called)
+[PC1] process terminating
