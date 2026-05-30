@@ -13,9 +13,11 @@ class GlitchLabel(tk.Label):
         self._glitch_loop(chance, interval)
 
     def _glitch_loop(self, chance, interval):
+        if not self.winfo_exists():
+            return
         if random.random() < chance:
             self.config(text=self._corrupt(self._original))
-            self.after(60, lambda: self.config(text=self._original))
+            self.after(60, lambda: self.winfo_exists() and self.config(text=self._original))
         self.after(interval, lambda: self._glitch_loop(chance, interval))
 
     def _corrupt(self, text):
@@ -33,6 +35,8 @@ class ScanlineCanvas(tk.Canvas):
         self._draw_scanlines()
 
     def _draw_scanlines(self):
+        if not self.winfo_exists():
+            return
         self.delete("scanline")
         h = self.winfo_height() or 900
         w = self.winfo_width() or 1600

@@ -19,8 +19,17 @@ from pc1.app import EscapeRoomApp
 from pc1.config import PC1_API_PORT
 
 
+def _api_watchdog():
+    while True:
+        try:
+            run_api_server()
+        except Exception as exc:
+            print(f"[PC1 API] crashed: {exc} — restarting in 2s")
+        import time; time.sleep(2)
+
+
 def main():
-    threading.Thread(target=run_api_server, daemon=True, name="pc1-api").start()
+    threading.Thread(target=_api_watchdog, daemon=True, name="pc1-api").start()
     print(f"[PC1 API] Game control API listening on port {PC1_API_PORT}")
 
     root = tk.Tk()
