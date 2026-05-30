@@ -759,15 +759,18 @@ class EscapeRoomApp:
         self.root.after(160, lambda: self._flash_red(times - 1))
 
     def _admin_quit(self, event=None):
+        print("[PC1] admin quit triggered (Ctrl+Shift+Alt+Q)", flush=True)
         notify_pc2("audio/stop", {})
         notify_pc2("lights/blackout", {})
         self.root.destroy()
 
     def _f12_quit(self, event=None):
         self._f12_presses += 1
+        print(f"[PC1] F12 press #{self._f12_presses}", flush=True)
         if self._f12_timer:
             self.root.after_cancel(self._f12_timer)
         if self._f12_presses >= 3:
+            print("[PC1] F12×3 quit triggered", flush=True)
             notify_pc2("audio/stop", {})
             notify_pc2("lights/blackout", {})
             self.root.destroy()

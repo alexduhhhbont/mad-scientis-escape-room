@@ -58,11 +58,12 @@ def main():
 
     try:
         root.mainloop()
+        print("[PC1] mainloop returned cleanly (root.destroy or root.quit called)", flush=True)
     except Exception:
         print("[PC1] mainloop crashed:", flush=True)
         traceback.print_exc()
     finally:
-        print("[PC1] mainloop exited — process will terminate", flush=True)
+        print("[PC1] process terminating", flush=True)
 
 
 if __name__ == "__main__":
