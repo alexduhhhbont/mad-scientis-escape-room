@@ -1,6 +1,42 @@
 {
   "types": [
     {
+      "id": "party-led-rgbw",
+      "name": "RGBW Party LED",
+      "channels": [
+        {
+          "offset": 0,
+          "name": "Red",
+          "role": "red"
+        },
+        {
+          "offset": 1,
+          "name": "Green",
+          "role": "green"
+        },
+        {
+          "offset": 2,
+          "name": "Blue",
+          "role": "blue"
+        },
+        {
+          "offset": 3,
+          "name": "White",
+          "role": "white"
+        },
+        {
+          "offset": 4,
+          "name": "Brightness",
+          "role": "intensity"
+        },
+        {
+          "offset": 5,
+          "name": "Strobe",
+          "role": "strobe"
+        }
+      ]
+    },
+    {
       "id": "eurolite-rgb",
       "name": "Eurolite LED PARty RGB Spot",
       "channels": [
@@ -36,50 +72,50 @@
     {
       "id": 1,
       "name": "Fixture 1",
-      "type_id": "eurolite-rgb",
+      "type_id": "party-led-rgbw",
       "dmx_address": 1
     },
     {
       "id": 2,
       "name": "Fixture 2",
-      "type_id": "eurolite-rgb",
-      "dmx_address": 6
+      "type_id": "party-led-rgbw",
+      "dmx_address": 7
     },
     {
       "id": 3,
       "name": "Fixture 3",
-      "type_id": "eurolite-rgb",
-      "dmx_address": 11
+      "type_id": "party-led-rgbw",
+      "dmx_address": 13
     },
     {
       "id": 4,
       "name": "Fixture 4",
-      "type_id": "eurolite-rgb",
-      "dmx_address": 16
+      "type_id": "party-led-rgbw",
+      "dmx_address": 19
     },
     {
       "id": 5,
       "name": "Fixture 5",
       "type_id": "eurolite-rgb",
-      "dmx_address": 21
+      "dmx_address": 25
     },
     {
       "id": 6,
       "name": "Fixture 6",
       "type_id": "eurolite-rgb",
-      "dmx_address": 26
+      "dmx_address": 30
     },
     {
       "id": 7,
       "name": "Fixture 7",
       "type_id": "eurolite-rgb",
-      "dmx_address": 31
+      "dmx_address": 35
     },
     {
       "id": 8,
       "name": "Fixture 8",
       "type_id": "eurolite-rgb",
-      "dmx_address": 36
+      "dmx_address": 40
     }
   ]
 }

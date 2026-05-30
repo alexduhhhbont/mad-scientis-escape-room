@@ -81,7 +81,7 @@ class LightingController:
     def _fixture_channels(self, inst, r: int, g: int, b: int, intensity: int) -> dict:
         offsets   = fixture_library.get_role_offsets(inst.type_id)
         base      = inst.dmx_address
-        role_vals = {"red": r, "green": g, "blue": b, "intensity": intensity, "strobe": 0}
+        role_vals = {"red": r, "green": g, "blue": b, "white": 0, "intensity": intensity, "strobe": 0}
         return {base + off: role_vals[role]
                 for role, off in offsets.items() if role in role_vals}
 
@@ -166,6 +166,7 @@ class LightingController:
                     if   role == "red":       frame[ch] = max(0, min(255, r))
                     elif role == "green":     frame[ch] = max(0, min(255, g))
                     elif role == "blue":      frame[ch] = max(0, min(255, b))
+                    elif role == "white":     frame[ch] = 0
                     elif role == "intensity": frame[ch] = max(0, min(255, intensity))
                     elif role == "strobe":    frame[ch] = 0
         return frame

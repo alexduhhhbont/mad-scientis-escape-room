@@ -9,6 +9,18 @@ from pc2.fixtures.models import FixtureChannel, FixtureType, FixtureInstance
 _DEFAULT_FIXTURE_DATA = {
     "types": [
         {
+            "id": "party-led-rgbw",
+            "name": "RGBW Party LED",
+            "channels": [
+                {"offset": 0, "name": "Red",        "role": "red"},
+                {"offset": 1, "name": "Green",      "role": "green"},
+                {"offset": 2, "name": "Blue",       "role": "blue"},
+                {"offset": 3, "name": "White",      "role": "white"},
+                {"offset": 4, "name": "Brightness", "role": "intensity"},
+                {"offset": 5, "name": "Strobe",     "role": "strobe"},
+            ],
+        },
+        {
             "id": "eurolite-rgb",
             "name": "Eurolite LED PARty RGB Spot",
             "channels": [
@@ -18,17 +30,17 @@ _DEFAULT_FIXTURE_DATA = {
                 {"offset": 3, "name": "Dimmer", "role": "intensity"},
                 {"offset": 4, "name": "Strobe", "role": "strobe"},
             ],
-        }
+        },
     ],
     "instances": [
-        {"id": 1, "name": "Warm 1",    "type_id": "eurolite-rgb", "dmx_address":  1},
-        {"id": 2, "name": "Warm 2",    "type_id": "eurolite-rgb", "dmx_address": 10},
-        {"id": 3, "name": "Warm 3",    "type_id": "eurolite-rgb", "dmx_address": 19},
-        {"id": 4, "name": "Warm 4",    "type_id": "eurolite-rgb", "dmx_address": 28},
-        {"id": 5, "name": "Accent A1", "type_id": "eurolite-rgb", "dmx_address": 37},
-        {"id": 6, "name": "Accent A2", "type_id": "eurolite-rgb", "dmx_address": 46},
-        {"id": 7, "name": "Accent B1", "type_id": "eurolite-rgb", "dmx_address": 55},
-        {"id": 8, "name": "Accent B2", "type_id": "eurolite-rgb", "dmx_address": 64},
+        {"id": 1, "name": "Fixture 1", "type_id": "party-led-rgbw", "dmx_address":  1},
+        {"id": 2, "name": "Fixture 2", "type_id": "party-led-rgbw", "dmx_address":  7},
+        {"id": 3, "name": "Fixture 3", "type_id": "party-led-rgbw", "dmx_address": 13},
+        {"id": 4, "name": "Fixture 4", "type_id": "party-led-rgbw", "dmx_address": 19},
+        {"id": 5, "name": "Fixture 5", "type_id": "eurolite-rgb",   "dmx_address": 25},
+        {"id": 6, "name": "Fixture 6", "type_id": "eurolite-rgb",   "dmx_address": 30},
+        {"id": 7, "name": "Fixture 7", "type_id": "eurolite-rgb",   "dmx_address": 35},
+        {"id": 8, "name": "Fixture 8", "type_id": "eurolite-rgb",   "dmx_address": 40},
     ],
 }
 
