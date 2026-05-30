@@ -151,8 +151,10 @@ def _rb(fid, intensity=255, hz=0.08, phase=0.0):
     return FixtureAnim(fid, "rainbow", intensity=intensity, frequency_hz=hz, phase_offset=phase)
 
 
-# (time, fade, label, scene_ref, anims) — mirrors the previous _CUES + intro_* scenes
+# Intro cue list — each entry fires at the given time and crossfades over `fade` seconds.
 _INTRO_CUES = [
+
+    # 0s — pink circles through 1-4 (chase pulse), 5-8 off
     TimelineCue(0.0, 1.0, "Pink chase", anims=[
         _p(1, _PINK, _ACC, hz=0.4, phase=0.00),
         _p(2, _PINK, _ACC, hz=0.4, phase=0.25),
@@ -160,70 +162,112 @@ _INTRO_CUES = [
         _p(4, _PINK, _ACC, hz=0.4, phase=0.75),
         _s(5, _OFF, 0), _s(6, _OFF, 0), _s(7, _OFF, 0), _s(8, _OFF, 0),
     ]),
-    TimelineCue(12.0, 1.0, "Fill 1-5", anims=[
-        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT), _s(3, _WW, _WARM_INT),
-        _s(4, _WW, _WARM_INT), _s(5, _WW, _WARM_INT),
-        _s(6, _OFF, 0), _s(7, _OFF, 0), _s(8, _OFF, 0),
+
+    # 15s — 1-4 warm, 8 warm, 5-7 off  (fill starts from the outside)
+    TimelineCue(15.0, 1.0, "Fill 1-4 + 8", anims=[
+        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT),
+        _s(3, _WW, _WARM_INT), _s(4, _WW, _WARM_INT),
+        _s(5, _OFF, 0), _s(6, _OFF, 0), _s(7, _OFF, 0), _s(8, _WW, _WARM_INT),
     ]),
-    TimelineCue(16.0, 0.5, "Fill 1-6", anims=[
-        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT), _s(3, _WW, _WARM_INT),
-        _s(4, _WW, _WARM_INT), _s(5, _WW, _WARM_INT), _s(6, _WW, _WARM_INT),
-        _s(7, _OFF, 0), _s(8, _OFF, 0),
+
+    # 16s — 1-4 warm, 7-8 warm, 5-6 off
+    TimelineCue(16.0, 0.5, "Fill + 7", anims=[
+        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT),
+        _s(3, _WW, _WARM_INT), _s(4, _WW, _WARM_INT),
+        _s(5, _OFF, 0), _s(6, _OFF, 0),
+        _s(7, _WW, _WARM_INT), _s(8, _WW, _WARM_INT),
     ]),
-    TimelineCue(17.0, 0.5, "Fill 1-7", anims=[
-        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT), _s(3, _WW, _WARM_INT),
-        _s(4, _WW, _WARM_INT), _s(5, _WW, _WARM_INT), _s(6, _WW, _WARM_INT),
-        _s(7, _WW, _WARM_INT), _s(8, _OFF, 0),
+
+    # 17s — 1-4 warm, 6-8 warm, 5 off
+    TimelineCue(17.0, 0.5, "Fill + 6", anims=[
+        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT),
+        _s(3, _WW, _WARM_INT), _s(4, _WW, _WARM_INT),
+        _s(5, _OFF, 0),
+        _s(6, _WW, _WARM_INT), _s(7, _WW, _WARM_INT), _s(8, _WW, _WARM_INT),
     ]),
+
+    # 18s — all warm white
     TimelineCue(18.0, 0.5, "All warm", anims=[
         _s(i, _WW, _WARM_INT) for i in range(1, 9)
     ]),
-    TimelineCue(20.0, 1.0, "Green/Pink pulse", anims=[
-        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT), _s(3, _WW, _WARM_INT),
-        _s(4, _WW, _WARM_INT), _s(5, _WW, _WARM_INT), _s(6, _WW, _WARM_INT),
+
+    # 20s — 1-6 warm, 7 green / 8 pink slow alternating circle
+    TimelineCue(20.0, 1.0, "Green/Pink slow circle", anims=[
+        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT),
+        _s(3, _WW, _WARM_INT), _s(4, _WW, _WARM_INT),
+        _s(5, _WW, _WARM_INT), _s(6, _WW, _WARM_INT),
         _p(7, _GREEN, _ACC, hz=0.25, phase=0.0),
         _p(8, _PINK,  _ACC, hz=0.25, phase=0.5),
     ]),
-    TimelineCue(27.0, 1.0, "Red blink", anims=[
-        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT), _s(3, _WW, _WARM_INT),
-        _s(4, _WW, _WARM_INT), _s(5, _WW, _WARM_INT), _s(6, _WW, _WARM_INT),
-        _s(7, _WW, _WARM_INT), _f(8, _RED, _ACC, hz=0.4),
+
+    # 27s — 1-7 warm, 8 red slow blink
+    TimelineCue(27.0, 1.0, "Red slow blink", anims=[
+        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT),
+        _s(3, _WW, _WARM_INT), _s(4, _WW, _WARM_INT),
+        _s(5, _WW, _WARM_INT), _s(6, _WW, _WARM_INT),
+        _s(7, _WW, _WARM_INT), _f(8, _RED, _ACC, hz=0.3),
     ]),
-    TimelineCue(35.0, 1.0, "Yellow/Aqua accents", anims=[
-        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT), _s(3, _WW, _WARM_INT),
-        _s(4, _WW, _WARM_INT), _s(5, _YELLOW, _ACC),
-        _s(6, _WW, _WARM_INT), _s(7, _WW, _WARM_INT), _s(8, _AQUA, _ACC),
+
+    # 35s — 1-4 warm, 5 orange, 6-7 warm, 8 red
+    TimelineCue(35.0, 1.0, "Orange + Red accent", anims=[
+        _s(1, _WW, _WARM_INT), _s(2, _WW, _WARM_INT),
+        _s(3, _WW, _WARM_INT), _s(4, _WW, _WARM_INT),
+        _s(5, _ORANGE, _ACC),
+        _s(6, _WW, _WARM_INT), _s(7, _WW, _WARM_INT),
+        _s(8, _RED, _ACC),
     ]),
-    TimelineCue(40.0, 1.0, "Colour accents", anims=[
+
+    # 40s — 1-4 warm 50%, 5-7 orange, 8 red
+    TimelineCue(40.0, 1.0, "Orange group", anims=[
         _s(1, _WW, _W50), _s(2, _WW, _W50), _s(3, _WW, _W50), _s(4, _WW, _W50),
-        _s(5, _YELLOW, _ACC), _s(6, _GREEN, _ACC), _s(7, _ORANGE, _ACC), _s(8, _AQUA, _ACC),
+        _s(5, _ORANGE, _ACC), _s(6, _ORANGE, _ACC), _s(7, _ORANGE, _ACC),
+        _s(8, _RED, _ACC),
     ]),
-    TimelineCue(45.0, 1.0, "Spotlight 7", anims=[
+
+    # 45s — 1-4 warm 50%, spotlight on 6 (white 100%), others dimmed
+    TimelineCue(45.0, 1.0, "Spotlight 6", anims=[
         _s(1, _WW, _W50), _s(2, _WW, _W50), _s(3, _WW, _W50), _s(4, _WW, _W50),
-        _s(5, _YELLOW, _W20), _s(6, _GREEN, _W20), _s(7, _WHITE, 255), _s(8, _AQUA, _W20),
+        _s(5, _ORANGE, _W20), _s(6, _WHITE, 255), _s(7, _ORANGE, _W20), _s(8, _RED, _W20),
     ]),
-    TimelineCue(54.0, 1.0, "Dim warm + spot 7", anims=[
+
+    # 54s — colours fade to warm white, spotlight 6 stays
+    TimelineCue(54.0, 1.0, "Dim to warm + spot 6", anims=[
         _s(1, _WW, _W50), _s(2, _WW, _W50), _s(3, _WW, _W50), _s(4, _WW, _W50),
-        _s(5, _WW, _W20), _s(6, _WW, _W20), _s(7, _WHITE, 255), _s(8, _WW, _W20),
+        _s(5, _WW, _W20), _s(6, _WHITE, 255), _s(7, _WW, _W20), _s(8, _WW, _W20),
     ]),
-    TimelineCue(59.0, 0.5, "Drop 8", anims=[
+
+    # 59s — 5 drops out
+    TimelineCue(59.0, 0.5, "Drop 5", anims=[
         _s(1, _WW, _W50), _s(2, _WW, _W50), _s(3, _WW, _W50), _s(4, _WW, _W50),
-        _s(5, _WW, _W20), _s(6, _WW, _W20), _s(7, _WHITE, 255), _s(8, _OFF, 0),
+        _s(5, _OFF, 0), _s(6, _WHITE, 255), _s(7, _WW, _W20), _s(8, _WW, _W20),
     ]),
-    TimelineCue(59.5, 0.3, "Narrow to 6-7", anims=[
+
+    # 59.5s — 7 drops, 8 goes to full warm
+    TimelineCue(59.5, 0.3, "Drop 7", anims=[
         _s(1, _WW, _W50), _s(2, _WW, _W50), _s(3, _WW, _W50), _s(4, _WW, _W50),
-        _s(5, _OFF, 0), _s(6, _WW, _W20), _s(7, _WHITE, 255), _s(8, _OFF, 0),
+        _s(5, _OFF, 0), _s(6, _WHITE, 255), _s(7, _OFF, 0), _s(8, _WW, _WARM_INT),
     ]),
-    TimelineCue(60.0, 0.3, "Rainbow burst 7", anims=[
+
+    # 60s — 8 drops, only 1-4 and spotlight 6 remain
+    TimelineCue(60.0, 0.3, "Spotlight 6 only", anims=[
         _s(1, _WW, _W50), _s(2, _WW, _W50), _s(3, _WW, _W50), _s(4, _WW, _W50),
-        _s(5, _OFF, 0), _s(6, _OFF, 0), _rb(7, intensity=_ACC, hz=0.6), _s(8, _OFF, 0),
+        _s(5, _OFF, 0), _s(6, _WHITE, 255), _s(7, _OFF, 0), _s(8, _OFF, 0),
     ]),
+
+    # 60.5s — fixture 6 goes rainbow (fast)
+    TimelineCue(60.5, 0.3, "Rainbow burst 6", anims=[
+        _s(1, _WW, _W50), _s(2, _WW, _W50), _s(3, _WW, _W50), _s(4, _WW, _W50),
+        _s(5, _OFF, 0), _rb(6, intensity=_ACC, hz=0.6), _s(7, _OFF, 0), _s(8, _OFF, 0),
+    ]),
+
+    # 66s — green reveal on 5, 6, 8; 7 warm
     TimelineCue(66.0, 0.5, "Green reveal", anims=[
         _s(1, _WW, _W50), _s(2, _WW, _W50), _s(3, _WW, _W50), _s(4, _WW, _W50),
         _s(5, _GREEN, _ACC), _s(6, _GREEN, _ACC), _s(7, _WW, _WARM_INT), _s(8, _GREEN, _ACC),
     ]),
-    # Immediately begin a 3.9s fade to the live phase1 scene → arrives at t=70s.
-    TimelineCue(66.1, 3.9, "→ Phase 1", scene_ref="phase1"),
+
+    # 69s — 1s fade into phase 1 → arrives at 70s
+    TimelineCue(69.0, 1.0, "→ Phase 1", scene_ref="phase1"),
 ]
 
 _DEFAULT_TIMELINES: dict = {

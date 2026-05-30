@@ -78,10 +78,19 @@ class LightingController:
             self._scene_jobs = []
         self._notify_gui()
 
+    @staticmethod
+    def _rgbw(r: int, g: int, b: int, has_white: bool) -> tuple:
+        """Extract white from RGB when the fixture has a white channel."""
+        if not has_white:
+            return r, g, b, 0
+        w = min(r, g, b)
+        return r - w, g - w, b - w, w
+
     def _fixture_channels(self, inst, r: int, g: int, b: int, intensity: int) -> dict:
         offsets   = fixture_library.get_role_offsets(inst.type_id)
         base      = inst.dmx_address
-        role_vals = {"red": r, "green": g, "blue": b, "white": 0, "intensity": intensity, "strobe": 0}
+        r, g, b, w = self._rgbw(r, g, b, "white" in offsets)
+        role_vals = {"red": r, "green": g, "blue": b, "white": w, "intensity": intensity, "strobe": 0}
         return {base + off: role_vals[role]
                 for role, off in offsets.items() if role in role_vals}
 
@@ -160,13 +169,14 @@ class LightingController:
             r, g, b, intensity = render_fixture_anim(job, t)
             offsets = fixture_library.get_role_offsets(inst.type_id)
             base    = inst.dmx_address
+            r, g, b, w = self._rgbw(r, g, b, "white" in offsets)
             for role, off in offsets.items():
                 ch = base + off
                 if 1 <= ch <= 512:
                     if   role == "red":       frame[ch] = max(0, min(255, r))
                     elif role == "green":     frame[ch] = max(0, min(255, g))
                     elif role == "blue":      frame[ch] = max(0, min(255, b))
-                    elif role == "white":     frame[ch] = 0
+                    elif role == "white":     frame[ch] = max(0, min(255, w))
                     elif role == "intensity": frame[ch] = max(0, min(255, intensity))
                     elif role == "strobe":    frame[ch] = 0
         return frame

@@ -26,7 +26,7 @@ from pathlib import Path
 _WARM_WHITE = (255, 160,  60)
 _WARM_INT   = 200
 _RED        = (255,   0,   0)
-_GREEN      = (  0, 220,  60)
+_GREEN      = (  0, 255,   0)
 _ORANGE     = (255, 120,   0)
 _AQUA       = (  0, 200, 180)
 _PURPLE     = (160,   0, 220)
