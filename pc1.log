@@ -85,3 +85,19 @@
 [PC1→PC2] audio/phase3_story → 200
 [PC1→PC2] audio/victory → 200
 [PC1→PC2] lights/scene → 200
+[PC1] quit sequence entered
+[PC1] admin quit triggered (Ctrl+Shift+Alt+Q)
+[PC1] mainloop returned cleanly (root.destroy or root.quit called)
+[PC1] process terminating
+[PC1 API] starting uvicorn (attempt 1)
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/waiting → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/phase3_story → 200
+[PC1→PC2] lights/scene → 200
+[PC1→PC2] audio/victory → 200
+[PC1] quit sequence entered
+[PC1] admin quit triggered (Ctrl+Shift+Alt+Q)
+[PC1] mainloop returned cleanly (root.destroy or root.quit called)
+[PC1] process terminating
