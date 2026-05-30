@@ -39,9 +39,11 @@ class EscapeRoomApp:
         self.root.bind("<Super_R>",  lambda e: "break")
         self.root.bind(ADMIN_COMBO, self._admin_quit)
 
-        self._f12_presses = 0
-        self._f12_timer   = None
-        self.root.bind("<F12>", self._f12_quit)
+        self._f12_presses  = 0
+        self._f12_timer    = None
+        self._f12_released = True
+        self.root.bind("<F12>",            self._f12_quit)
+        self.root.bind("<KeyRelease-F12>", self._f12_release)
 
         self.stage            = "waiting"
         self.attempt_count    = 0
@@ -764,7 +766,13 @@ class EscapeRoomApp:
         notify_pc2("lights/blackout", {})
         self.root.destroy()
 
+    def _f12_release(self, event=None):
+        self._f12_released = True
+
     def _f12_quit(self, event=None):
+        if not self._f12_released:
+            return   # auto-repeat, ignore
+        self._f12_released = False
         self._f12_presses += 1
         print(f"[PC1] F12 press #{self._f12_presses}", flush=True)
         if self._f12_timer:
@@ -779,4 +787,4 @@ class EscapeRoomApp:
 
     def _reset_f12(self):
         self._f12_presses = 0
-        self._f12_timer = None
+        self._f12_timer   = None
