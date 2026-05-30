@@ -20,7 +20,7 @@ from pc2.config import (
     AUDIO_PHASE2_STORY, AUDIO_PHASE2_THEME,
     AUDIO_PHASE3_STORY, AUDIO_PHASE3_THEME,
     AUDIO_VICTORY, AUDIO_WRONG, AUDIO_HINT,
-    THEME_VOLUME, DUCK_VOLUME, SFX_VOLUME,
+    STORY_VOLUME, THEME_VOLUME, DUCK_VOLUME, SFX_VOLUME,
     PC1_URL, PC1_API_KEY,
 )
 
@@ -95,7 +95,7 @@ class AudioManager:
         pygame.mixer.music.stop()
         snd = self._load(AUDIO_INTRO)
         if snd:
-            self._sfx_ch.set_volume(SFX_VOLUME)
+            self._sfx_ch.set_volume(STORY_VOLUME)
             self._sfx_ch.play(snd)
             threading.Timer(snd.get_length() + 0.5, self._on_intro_done).start()
         else:
@@ -127,7 +127,7 @@ class AudioManager:
     # ── Phase stories (one-shot narration → auto-starts phase theme) ─────────────
 
     def _play_story_then(self, snd, callback):
-        self._story_ch.set_volume(SFX_VOLUME)
+        self._story_ch.set_volume(STORY_VOLUME)
         self._story_ch.play(snd)
         def _wait():
             while self._story_ch.get_busy():
@@ -162,7 +162,7 @@ class AudioManager:
             return
         if self._ok:
             pygame.mixer.music.stop()
-            self._story_ch.set_volume(SFX_VOLUME)
+            self._story_ch.set_volume(STORY_VOLUME)
             self._story_ch.play(snd)
 
     # ── SFX (duck theme, restore after) ──────────────────────────────────────────
