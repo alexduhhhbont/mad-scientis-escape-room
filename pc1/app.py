@@ -770,7 +770,6 @@ class EscapeRoomApp:
 
     def _check_quit_sequence(self, event):
         if event.char:
-            print(f"[PC1] key char={repr(event.char)} keysym={event.keysym}", flush=True)
             self._quit_sequence = (self._quit_sequence + event.char)[-len(self._QUIT_SEQ):]
             if self._quit_sequence == self._QUIT_SEQ:
                 print("[PC1] quit sequence entered", flush=True)

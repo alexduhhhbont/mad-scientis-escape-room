@@ -22,14 +22,15 @@ def set_game_app(app: "EscapeRoomApp") -> None:
 def notify_pc2(endpoint: str, payload: dict) -> None:
     def _send():
         try:
-            requests.post(
+            r = requests.post(
                 f"{PC2_URL}/{endpoint}",
                 json=payload,
                 headers={"X-API-Key": PC2_API_KEY},
                 timeout=1.0,
             )
-        except Exception:
-            pass
+            print(f"[PC1→PC2] {endpoint} → {r.status_code}", flush=True)
+        except Exception as exc:
+            print(f"[PC1→PC2] {endpoint} FAILED: {exc}", flush=True)
     threading.Thread(target=_send, daemon=True).start()
 
 
