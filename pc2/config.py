@@ -37,6 +37,6 @@ AUDIO_WRONG         = os.path.join(AUDIO_DIR, "wrong.mp3")
 AUDIO_HINT          = os.path.join(AUDIO_DIR, "hint.wav")
 
 STORY_VOLUME = 1.00
-THEME_VOLUME = 0.10
+THEME_VOLUME = 0.20
 DUCK_VOLUME  = 0.10
 SFX_VOLUME   = 0.60
